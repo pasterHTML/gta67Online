@@ -167,7 +167,11 @@
         ],
         "animations": [],
         "wheelNodes": []
-      }
+      },
+      "optimizedModel": "assets/cars/mclaren-650s-gt3/scene-optimized.glb",
+      "optimizedFormat": "glb",
+      "originalModelBytes": 133255,
+      "optimizedBytes": 11783508
     },
     {
       "id": "bmw-m4-gt3-evo",
@@ -915,7 +919,11 @@
           "BMW:ANC_SteeringWheel_00",
           "BMW:ANC_SteeringWheel_00_BMW:MAT_Details_EXT1_0"
         ]
-      }
+      },
+      "optimizedModel": "assets/cars/bmw-m4-gt3-evo/scene-optimized.glb",
+      "optimizedFormat": "glb",
+      "originalModelBytes": 679955,
+      "optimizedBytes": 5235284
     },
     {
       "id": "lamborghini-fenomeno",
@@ -1177,7 +1185,11 @@
           "Wheel Rear L_32",
           "Wheel Rear R_34"
         ]
-      }
+      },
+      "optimizedModel": "assets/cars/lamborghini-fenomeno/scene-optimized.glb",
+      "optimizedFormat": "glb",
+      "originalModelBytes": 242881,
+      "optimizedBytes": 13351468
     },
     {
       "id": "bmw-m1-turbo",
@@ -1701,7 +1713,11 @@
           "bmw_m635csi_84_wheel_wheel_inner_rim_002_168",
           "inner_rim-material_169"
         ]
-      }
+      },
+      "optimizedModel": "assets/cars/bmw-m1-turbo/scene-optimized.glb",
+      "optimizedFormat": "glb",
+      "originalModelBytes": 315958,
+      "optimizedBytes": 9508088
     },
     {
       "id": "volkswagen-golf-gti-2025",
@@ -2169,7 +2185,11 @@
           "Ext_Lights#SteeringWheel_Grip_01_AO_48",
           "INT_STEERING_WHEEL_160"
         ]
-      }
+      },
+      "optimizedModel": "assets/cars/volkswagen-golf-gti-2025/scene-optimized.glb",
+      "optimizedFormat": "glb",
+      "originalModelBytes": 489264,
+      "optimizedBytes": 15148656
     }
   ]
 }
