@@ -317,7 +317,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
         : 0;
 
       if (!car.farModelRoot) {
-        const shouldRetry = car === activeCar || !referencePosition || distanceSq <= 145 * 145;
+        const shouldRetry = car === activeCar || !referencePosition || distanceSq <= 110 * 110;
         if (shouldRetry && !car._mounting && now >= (car._mountRetryAt || 0)) {
           void mount(car);
         }
