@@ -1,18 +1,71 @@
-export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}) {
-  const loader = new GLTFLoader();
+export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, onProgress = () => {}) {
+  const manager = new THREE.LoadingManager();
+  const loader = new GLTFLoader(manager);
   const manifestUrl = new URL("../assets/cars/manifest.json", import.meta.url);
   const projectRoot = new URL("../", import.meta.url);
   const templates = new Map();
+  const modelStates = new Map();
   let manifestPromise = null;
   let manifestCache = null;
+  let expectedModels = 5;
+  let loadedFiles = 0;
+  let totalFiles = 0;
+  let lastProgress = null;
+
+  function publishProgress(extra = {}) {
+    const loadedModels = [...modelStates.values()].filter((s) => s === "loaded").length;
+    const failedModels = [...modelStates.values()].filter((s) => s === "failed").length;
+    const completedModels = loadedModels + failedModels;
+    const currentModel = [...modelStates.entries()].find(([, state]) => state === "loading")?.[0] || null;
+    const fileFraction = totalFiles > 0 ? Math.min(0.85, loadedFiles / totalFiles) : 0;
+    const rawPercent = ((completedModels + fileFraction) / Math.max(1, expectedModels)) * 100;
+    const percent = completedModels >= expectedModels ? 100 : Math.min(98, Math.round(rawPercent));
+
+    lastProgress = {
+      percent,
+      loadedModels,
+      failedModels,
+      completedModels,
+      totalModels: expectedModels,
+      loadedFiles,
+      totalFiles,
+      currentModel,
+      detail: currentModel ? "Загрузка: " + currentModel : "Подготовка моделей автомобилей",
+      done: completedModels >= expectedModels,
+      ...extra
+    };
+    onProgress(lastProgress);
+  }
+
+  manager.onStart = (url, itemsLoaded, itemsTotal) => {
+    loadedFiles = itemsLoaded;
+    totalFiles = itemsTotal;
+    publishProgress({ detail: "Загружаются модели и текстуры" });
+  };
+  manager.onProgress = (url, itemsLoaded, itemsTotal) => {
+    loadedFiles = itemsLoaded;
+    totalFiles = itemsTotal;
+    publishProgress({ detail: "Загружаются модели и текстуры" });
+  };
+  manager.onError = (url) => {
+    console.warn("[LEONIDA] Не удалось загрузить ресурс модели:", url);
+    publishProgress({ warning: "Один из файлов модели не загрузился" });
+  };
+  manager.onLoad = () => {
+    loadedFiles = totalFiles;
+    publishProgress({ detail: "Файлы загружены, завершаем подготовку" });
+  };
 
   async function getManifest() {
     if (!manifestPromise) {
-      manifestPromise = fetch(manifestUrl, { cache: "force-cache" }).then(async (response) => {
+      publishProgress({ detail: "Получаем список автомобилей" });
+      manifestPromise = fetch(manifestUrl, { cache: "no-cache" }).then(async (response) => {
         if (!response.ok) throw new Error("Не удалось загрузить список автомобилей: HTTP " + response.status);
         const manifest = await response.json();
         if (!manifest || !Array.isArray(manifest.vehicles)) throw new Error("Файл manifest.json имеет неверный формат");
         manifestCache = manifest;
+        expectedModels = manifest.vehicles.length || 5;
+        publishProgress({ detail: "Найдено моделей: " + expectedModels });
         return manifest;
       });
     }
@@ -21,20 +74,32 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}) 
 
   async function getTemplate(modelId) {
     if (templates.has(modelId)) return templates.get(modelId);
+
+    modelStates.set(modelId, "loading");
+    publishProgress({ detail: "Загрузка: " + modelId });
+
     const pending = (async () => {
       const manifest = await getManifest();
       const entry = manifest.vehicles.find((vehicle) => vehicle.id === modelId);
       if (!entry) throw new Error("Модель автомобиля отсутствует в manifest.json: " + modelId);
-      const modelUrl = new URL(entry.model, projectRoot).href;
+
+      const selectedPath = entry.optimizedModel || entry.model;
+      const modelUrl = new URL(selectedPath, projectRoot).href;
       const gltf = await loader.loadAsync(modelUrl);
       if (!gltf || !gltf.scene) throw new Error("GLTF не содержит 3D-сцену: " + modelId);
       return { entry, scene: gltf.scene };
     })();
+
     templates.set(modelId, pending);
     try {
-      return await pending;
+      const result = await pending;
+      modelStates.set(modelId, "loaded");
+      publishProgress({ detail: "Готово: " + result.entry.name });
+      return result;
     } catch (error) {
       templates.delete(modelId);
+      modelStates.set(modelId, "failed");
+      publishProgress({ detail: "Ошибка загрузки: " + modelId, warning: error?.message || String(error) });
       throw error;
     }
   }
@@ -48,9 +113,9 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}) 
     let bounds = new THREE.Box3().setFromObject(fitted);
     let size = bounds.getSize(new THREE.Vector3());
 
-    // A few Sketchfab exports use Z-up source coordinates. Rotate only when
-    // the measured vertical extent is clearly longer than the car length.
-    if (size.y > size.z * 1.3 && size.y > size.x * 1.5) {
+    // Some Sketchfab exports have their long car axis on Y instead of Z.
+    // Rotate those scenes into the game's Y-up / Z-forward coordinate system.
+    if (size.y > size.z * 1.25 && size.y > size.x * 1.25) {
       fitted.rotation.x = -Math.PI / 2;
       fitted.updateMatrixWorld(true);
       bounds = new THREE.Box3().setFromObject(fitted);
@@ -61,7 +126,13 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}) 
       throw new Error("Не удалось определить габариты модели " + modelId);
     }
 
-    const targetLength = 4.5;
+    // The game's forward vector is -Z. The supplied vehicle exports face +Z.
+    fitted.rotation.y += Math.PI;
+    fitted.updateMatrixWorld(true);
+    bounds = new THREE.Box3().setFromObject(fitted);
+    size = bounds.getSize(new THREE.Vector3());
+
+    const targetLength = 5.05;
     const fitScale = targetLength / size.z;
     const center = bounds.getCenter(new THREE.Vector3());
 
@@ -74,23 +145,17 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}) 
 
     fitted.traverse((object) => {
       if (!object.isMesh) return;
-      object.castShadow = true;
-      object.receiveShadow = true;
+      object.castShadow = false;
+      object.receiveShadow = false;
       object.frustumCulled = true;
-      if (Array.isArray(object.material)) {
-        object.material.forEach((material) => {
-          if (material && material.transparent && material.opacity >= 1) {
-            material.transparent = false;
-          }
-        });
-      }
+      object.matrixAutoUpdate = true;
     });
 
     return fitted;
   }
 
   function findWheelPivots(root) {
-    const exactWheelName = /^(3dwheel\s+(front|rear)\s+[lr]|wheel1a_(lf|lr|rf|rr)(_|$)|wheel_(front|rear)\s+[lr](_|$)|wheel_(rf|lf|rr|lr)(_|$)|tire_(fl|fr|rl|rr)(_|$))/i;
+    const exactWheelName = /^(3dwheel\s+(front|rear)\s+[lr]|wheel1a_(lf|lr|rf|rr)(_|$)|wheel_(front|rear)\s+[lr](_|$)|wheel_(rf|lf|rr|lr)(_|$)|wheel_(fl|fr|rl|rr)(_|$)|wheels?_(front|rear)|wheel_(front|rear))/i;
     const candidates = [];
     root.traverse((object) => {
       const hasChildren = Array.isArray(object.children) && object.children.length > 0;
@@ -106,7 +171,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}) 
   }
 
   async function mount(car) {
-    if (!car || !car.spec || !car.spec.modelId || car.isPolice || car.isTank) return false;
+    if (!car || !car.spec || !car.spec.modelId || car.isTank) return false;
     if (car.modelRoot) return true;
 
     try {
@@ -114,8 +179,6 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}) 
       const fitted = fitModel(template.scene, car.spec.modelId);
       const wheelPivots = findWheelPivots(fitted);
 
-      // Imported geometry is authored at real-world proportions. Reset the
-      // old rarity-based scale so the physics body and visual shell stay aligned.
       car.group.scale.set(1, 1, 1);
       car.group.add(fitted);
       car.modelRoot = fitted;
@@ -139,20 +202,13 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}) 
     }
   }
 
-  function update(cars, referencePosition, activeCar = null) {
-    if (!referencePosition || !Array.isArray(cars)) return;
-    const highDetailDistanceSq = 72 * 72;
-
+  function update(cars) {
+    if (!Array.isArray(cars)) return;
     for (const car of cars) {
       if (!car || !car.modelRoot) continue;
-      const useDetailedModel = car === activeCar ||
-        car.group.position.distanceToSquared(referencePosition) <= highDetailDistanceSq;
-
-      if (car.modelRoot.visible !== useDetailedModel) {
-        car.modelRoot.visible = useDetailedModel;
-        if (Array.isArray(car.baseVisualMeshes)) {
-          car.baseVisualMeshes.forEach((mesh) => { if (mesh) mesh.visible = !useDetailedModel; });
-        }
+      if (!car.modelRoot.visible) car.modelRoot.visible = true;
+      if (Array.isArray(car.baseVisualMeshes)) {
+        car.baseVisualMeshes.forEach((mesh) => { if (mesh) mesh.visible = false; });
       }
     }
   }
@@ -172,6 +228,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}) 
     mount,
     update,
     spinWheels,
-    get manifest() { return manifestCache; }
+    get manifest() { return manifestCache; },
+    get progress() { return lastProgress; }
   };
 }
