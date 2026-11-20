@@ -64,10 +64,6 @@
     .stars { font-size: 15px; letter-spacing: 2px; color: #facc15; }
     .stars .off { color: rgba(255, 255, 255, 0.18); }
 
-    .voice-live { color: #4ade80; font-weight: 800; }
-    .voice-hear { color: #38bdf8; font-weight: 800; }
-    .voice-off { color: #94a3b8; }
-
     #missionBox {
       position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
       z-index: 15; max-width: 440px; text-align: center; pointer-events: none;
@@ -117,31 +113,6 @@
       max-width: 360px;
     }
 
-    #copyCenterModal {
-      position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
-      z-index: 80;
-      background: rgba(10, 15, 28, 0.96);
-      border: 2px solid #38bdf8;
-      border-radius: 20px;
-      padding: 26px 34px;
-      min-width: 340px;
-      max-width: 90vw;
-      text-align: center;
-      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85);
-      display: none;
-      pointer-events: none;
-    }
-    #copyCenterModal.visible { display: flex; flex-direction: column; gap: 10px; align-items: center; }
-    #copyCenterModal .copy-title { font-size: 17px; font-weight: 800; color: #4ade80; }
-    #copyCenterModal .copy-code {
-      font-size: 26px; font-weight: 900; color: #fbbf24;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(251, 191, 36, 0.4);
-      padding: 9px 20px; border-radius: 12px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    }
-    #copyCenterModal .copy-sub { font-size: 12.5px; color: #cbd5e1; }
-
     /* МОБИЛЬНОЕ УПРАВЛЕНИЕ */
     #mobileControls {
       position: fixed; inset: 0; z-index: 20;
@@ -179,7 +150,6 @@
       touch-action: none;
     }
     .t-btn.fire { background: rgba(239, 68, 68, 0.82); }
-    .t-btn.voice.active { background: rgba(34, 197, 94, 0.9); color: #052e16; }
     .t-btn.act { background: rgba(251, 191, 36, 0.85); color: #090d16; }
 
     #mobileTopBar {
@@ -238,7 +208,7 @@
       border: 1px solid rgba(251, 191, 36, 0.35); padding: 3px 10px; border-radius: 999px;
     }
     .nick-box {
-      margin-top: 10px; display: flex; align-items: center; gap: 8px; max-width: 360px;
+      margin-top: 10px; display: flex; align-items: center; gap: 8px; max-width: 380px;
       background: rgba(15, 23, 42, 0.88); border: 1px solid rgba(255,255,255,0.16);
       padding: 8px 12px; border-radius: 10px;
     }
@@ -302,14 +272,9 @@
       background: rgba(30, 41, 59, 0.75); border: 1px solid rgba(255,255,255,0.1);
       padding: 10px 12px; border-radius: 10px; font-size: 12.5px;
     }
-    .server-row .srv-actions { display: flex; gap: 8px; }
     .server-row button {
       background: #38bdf8; color: #090d16; border: none; border-radius: 8px;
       padding: 7px 13px; font-weight: 700; cursor: pointer;
-    }
-    .server-row button.del-btn {
-      background: rgba(239, 68, 68, 0.22); color: #fca5a5;
-      border: 1px solid rgba(239, 68, 68, 0.45); padding: 7px 10px;
     }
     .join-row { display: flex; gap: 10px; flex-wrap: wrap; }
     .join-row input {
@@ -408,18 +373,12 @@
 
   <div id="toast"></div>
 
-  <div id="copyCenterModal">
-    <div class="copy-title">ХОСТ-КОМНАТА СОЗДАНА И ID СКОПИРОВАН!</div>
-    <div class="copy-code" id="copyCenterCode">leonida-0000</div>
-    <div class="copy-sub" id="copyCenterSub">Отправь код другу · Окно закроется через 3 сек</div>
-  </div>
-
   <!-- ИНТРО -->
   <div id="introScreen">
     <div class="studio-tag">LEONIDA STUDIO · ПРЕДСТАВЛЯЕТ</div>
     <div id="introJoke"></div>
     <div id="introSub">
-      Угоняй редкие машины, держи 5 звёзд против танков и вертолётов, общайся по рации [V] в радиусе слышимости и играй на ПК или телефоне.
+      Угоняй редкие машины, держи 5 звёзд против танков и вертолётов, покупай дома и играй с друзьями с любого Wi-Fi.
     </div>
     <button class="skip-btn" id="skipIntroBtn">Пропустить в лобби [Space]</button>
   </div>
@@ -428,18 +387,18 @@
   <div id="lobbyScreen">
     <div class="lobby-header">
       <h1>LEONIDA ONLINE 3D</h1>
-      <div class="ver">ВЕРСИЯ 1.5.0 · МАКС. 15 ИГРОКОВ · СТАТУС: <span id="netStatus">ОФФЛАЙН (ВНЕ МИРА)</span></div>
+      <div class="ver">ВЕРСИЯ 1.5.0 · МАКС. 15 ИГРОКОВ · СТАТУС: <span id="netStatus">ПОДКЛЮЧЕНИЕ...</span></div>
       <div class="nick-box">
         <label for="nickInput">Ник:</label>
-        <input type="text" id="nickInput" maxlength="16" value="Player" placeholder="Введи ник..." />
-        <button id="saveNickBtn">Сохранить</button>
+        <input type="text" id="nickInput" maxlength="16" value="Player_1000" placeholder="Введи ник..." />
+        <button id="saveNickBtn">Сменить</button>
       </div>
     </div>
 
     <div class="lobby-menu">
-      <button class="lobby-btn primary" id="playOfflineBtn"><span>▶ Играть в городе (Оффлайн)</span><span>→</span></button>
-      <button class="lobby-btn" id="openServersBtn"><span>🌐 Список серверов</span><span id="hostQuotaBadge">моих хостов: 0/2</span></button>
-      <button class="lobby-btn" id="createRoomBtn"><span>➕ Создать комнату (до 2 на IP)</span><span>P2P</span></button>
+      <button class="lobby-btn primary" id="createRoomBtn"><span>➕ Создать новый сервер</span><span>Сразу в бой</span></button>
+      <button class="lobby-btn" id="openServersBtn"><span>🌐 Список серверов</span><span id="lobbyRoomsCount">0 шт.</span></button>
+      <button class="lobby-btn" id="playOfflineBtn"><span>▶ Играть в городе (Оффлайн)</span><span>→</span></button>
       <button class="lobby-btn" id="openWardrobeBtn"><span>👕 Магазин одежды</span><span>3D</span></button>
     </div>
 
@@ -447,7 +406,6 @@
       <div><span>WASD / Стик</span> движение/авто</div>
       <div><span>[F]</span> угнать/выйти</div>
       <div><span>[E]</span> дверь/дом/миссия</div>
-      <div><span>[V]</span> голос (38м)</div>
       <div><span>[G]</span> на колёса</div>
       <div><span>[Tab]</span> игроки</div>
       <div><span>[M]</span> карта</div>
@@ -459,14 +417,14 @@
   <div class="modal-backdrop" id="serversModal">
     <div class="modal-card">
       <div class="modal-head">
-        <h2>Список комнат / серверов (макс. 15 игроков · до 2 своих хостов)</h2>
+        <h2>Общий список активных серверов (макс. 15 игроков)</h2>
         <button class="close-btn" data-close="serversModal">✕</button>
       </div>
       <div class="server-list" id="serverList"></div>
       <div class="join-row">
-        <input type="text" id="roomCodeInput" placeholder="Введи ID комнаты друга (например: leonida-7421)" />
-        <button id="joinByCodeBtn">Подключиться</button>
-        <button id="hostNewRoomBtn" style="background:#38bdf8;">Создать свою</button>
+        <input type="text" id="roomCodeInput" placeholder="Введи ID сервера (например: leonida-7421)" />
+        <button id="joinByCodeBtn">Войти по ID</button>
+        <button id="hostNewRoomBtn" style="background:#38bdf8;">Создать новый</button>
       </div>
     </div>
   </div>
@@ -494,7 +452,7 @@
       </div>
       <div class="pause-actions">
         <button class="lobby-btn primary" id="resumeGameBtn"><span>▶ Продолжить игру</span><span>Esc</span></button>
-        <button class="lobby-btn" id="pauseServersBtn"><span>🌐 Список серверов</span><span>P2P</span></button>
+        <button class="lobby-btn" id="pauseServersBtn"><span>🌐 Список серверов</span><span>WS</span></button>
         <button class="lobby-btn" id="pauseWardrobeBtn"><span>👕 Магазин одежды</span><span>3D</span></button>
         <button class="lobby-btn" id="pauseToLobbyBtn"><span>🏠 Выйти в лобби</span><span>→</span></button>
       </div>
@@ -505,7 +463,7 @@
   <div id="playerListOverlay">
     <div class="player-board">
       <div class="player-board-head">
-        <h3>Игроки в сессии (<span id="boardCount">1/15</span>)</h3>
+        <h3>Игроки на сервере (<span id="boardCount">1/15</span>)</h3>
         <span style="font-size:12px;color:#94a3b8;">[Tab] для закрытия</span>
       </div>
       <div class="player-rows" id="playerRows"></div>
@@ -516,11 +474,11 @@
   <div id="hud">
     <div id="hud-top-left">
       <div class="panel">
-        <div><b>Игрок:</b> <span id="hudNick">Player</span> · <b>HP:</b> <span id="hpText">100</span></div>
+        <div><b>Игрок:</b> <span id="hudNick">Player_1000</span> · <b>HP:</b> <span id="hpText">100</span></div>
         <div><b>Оружие:</b> <span id="weaponText">Пистолет</span> · <b>Деньги:</b> $<span id="moneyText">2500</span></div>
         <div><b>Авто:</b> <span id="carModelText">Нет (угони авто [F])</span></div>
-        <div><b>Локация:</b> <span id="floorText">Оушен-Драйв</span> · <b>Кузов:</b> <span id="carHpText">—</span></div>
-        <div><b>Сессия:</b> <span id="playersCountText">1/15</span> · <b>Рация:</b> <span id="voiceStatusText" class="voice-off">выкл [V]</span></div>
+        <div><b>Локация:</b> <span id="floorText">Оушен-Драйв</span> · <b>Время:</b> <span id="timePhaseText">День</span></div>
+        <div><b>Кузов:</b> <span id="carHpText">—</span> · <b>Сервер:</b> <span id="playersCountText">1/15</span></div>
         <div class="stars" id="starsBox">
           <span>★</span><span class="off">★</span><span class="off">★</span><span class="off">★</span><span class="off">★</span>
         </div>
@@ -537,7 +495,7 @@
     </div>
 
     <div id="hud-bottom-right">
-      <div class="panel"><b>[F]</b> угнать/выйти · <b>[E]</b> действие · <b>[V]</b> голос · <b>[G]</b> колёса · <b>[R]</b> радио: <span id="radioName">Vice FM</span> · <b>[Esc]</b> меню</div>
+      <div class="panel"><b>[F]</b> угнать/выйти · <b>[E]</b> действие · <b>[G]</b> колёса · <b>[R]</b> радио: <span id="radioName">Vice FM</span> · <b>[Esc]</b> меню</div>
       <div class="panel" id="speedo">
         <div class="num" id="speedNum">0</div>
         <div class="unit" id="speedUnit">км/ч · пешком</div>
@@ -560,7 +518,6 @@
       <button class="t-btn fire" id="mFireBtn">🔫 ОГОНЬ</button>
       <button class="t-btn" id="mCarBtn">🚗 УГНАТЬ</button>
       <button class="t-btn act" id="mActBtn">⚡ ДЕЙСТВИЕ</button>
-      <button class="t-btn voice" id="mVoiceBtn">🎙 ГОЛОС</button>
       <button class="t-btn" id="mFlipBtn">🔄 КОЛЁСА</button>
       <button class="t-btn" id="mJumpBtn">⬆ ПРЫЖОК</button>
     </div>
@@ -588,7 +545,6 @@
       }
     }
   </script>
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
   <script type="module">
     import * as THREE from "three";
@@ -605,15 +561,6 @@
       el._t = setTimeout(() => { el.style.display = "none"; }, 2800);
     }
 
-    function showCopiedIdModal(roomId, myHostCount) {
-      const modal = document.getElementById("copyCenterModal");
-      document.getElementById("copyCenterCode").textContent = roomId;
-      document.getElementById("copyCenterSub").textContent = `Твоих хостов: ${myHostCount}/2 · Окно закроется через 3 сек`;
-      modal.classList.add("visible");
-      clearTimeout(modal._timer);
-      modal._timer = setTimeout(() => { modal.classList.remove("visible"); }, 3000);
-    }
-
     function closeAllModals() {
       document.getElementById("serversModal").classList.remove("open");
       document.getElementById("wardrobeModal").classList.remove("open");
@@ -627,7 +574,7 @@
       return diff;
     }
 
-    // --- ФИЛЬТР НИКОВ ---
+    // --- ФИЛЬТР НИКОВ И АВТОГЕНЕРАЦИЯ ---
     const blockedWords = [
       "хуй", "пизд", "ебан", "ебать", "бляд", "блять", "сука", "суки",
       "мудак", "долбоеб", "долбоёб", "шлюх", "чмо", "fuck", "shit", "bitch", "nigger", "faggot"
@@ -645,31 +592,20 @@
       }
       return cleaned;
     }
-
-    let playerNick = "Player";
-    const nickInputEl = document.getElementById("nickInput");
-    function applyNickFromInput(showFeedback = true) {
-      const clean = sanitizeNickname(nickInputEl.value);
-      if (!clean) {
-        nickInputEl.value = playerNick;
-        if (showFeedback) showToast("Ник не прошёл фильтр или короче 2 символов.", "rgba(239, 68, 68, 0.95)");
-        return false;
-      }
-      playerNick = clean;
-      nickInputEl.value = clean;
-      document.getElementById("hudNick").textContent = clean;
-      renderPlayerBoard();
-      if (showFeedback) showToast(`Ник сохранён: ${clean}`);
-      return true;
+    function makeRandomNick() {
+      return "Player_" + Math.floor(1000 + Math.random() * 9000);
     }
-    document.getElementById("saveNickBtn").addEventListener("click", () => applyNickFromInput(true));
-    nickInputEl.addEventListener("change", () => applyNickFromInput(true));
+
+    let playerNick = makeRandomNick();
+    const nickInputEl = document.getElementById("nickInput");
+    nickInputEl.value = playerNick;
+    document.getElementById("hudNick").textContent = playerNick;
 
     // --- ИНТРО ---
     const jokes = [
       "Внимание! Машину нужно угнать [F] — халявных с неба не падает, а редкие спорткары стоят охоты.",
       "Внимание! На 5 звёздах к делу подключаются танки и вертолёты — береги кузов и нервы.",
-      "Внимание! Зажми [V] (или кнопку «ГОЛОС» на телефоне), чтобы поговорить в радиусе 38 метров."
+      "Внимание! У каждого дома есть табличка: на продаже или уже с ником владельца."
     ];
     const introScreen = document.getElementById("introScreen");
     const introJokeEl = document.getElementById("introJoke");
@@ -710,7 +646,6 @@
       introScreen.classList.add("hidden");
       lobbyScreen.classList.add("visible");
       renderServersList();
-      updateHostQuotaBadge();
     }
     document.getElementById("skipIntroBtn").addEventListener("click", finishIntroToLobby);
 
@@ -952,22 +887,94 @@
       const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; return tex;
     }
 
-    function drawNameTagCanvas(canvas, text, talking = false) {
+    function drawHouseSignCanvas(canvas, houseNum, ownerNick) {
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = talking ? "rgba(22, 101, 52, 0.92)" : "rgba(9, 13, 22, 0.78)";
+      const sold = !!ownerNick;
+      ctx.fillStyle = sold ? "rgba(15, 23, 42, 0.94)" : "rgba(20, 83, 45, 0.94)";
+      ctx.beginPath(); ctx.roundRect(8, 8, canvas.width - 16, canvas.height - 16, 14); ctx.fill();
+      ctx.strokeStyle = sold ? "#fbbf24" : "#4ade80";
+      ctx.lineWidth = 5;
+      ctx.stroke();
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "bold 20px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(`ДОМ №${houseNum}`, canvas.width / 2, 38);
+
+      if (sold) {
+        ctx.fillStyle = "#fbbf24";
+        ctx.font = "bold 21px system-ui, sans-serif";
+        ctx.fillText("КУПЛЕН", canvas.width / 2, 68);
+        ctx.fillStyle = "#f8fafc";
+        ctx.font = "bold 22px system-ui, sans-serif";
+        ctx.fillText(String(ownerNick).slice(0, 16), canvas.width / 2, 98);
+      } else {
+        ctx.fillStyle = "#4ade80";
+        ctx.font = "bold 24px system-ui, sans-serif";
+        ctx.fillText("НА ПРОДАЖЕ", canvas.width / 2, 74);
+        ctx.fillStyle = "#e2e8f0";
+        ctx.font = "600 18px system-ui, sans-serif";
+        ctx.fillText("Цена: $500", canvas.width / 2, 100);
+      }
+    }
+
+    function makeHouseSignBoard(houseNum, ownerNick) {
+      const group = new THREE.Group();
+      const post = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.06, 0.06, 1.35, 8),
+        new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.5, roughness: 0.5 })
+      );
+      post.position.y = 0.675;
+      post.castShadow = true;
+      group.add(post);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 320;
+      canvas.height = 128;
+      drawHouseSignCanvas(canvas, houseNum, ownerNick);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const board = new THREE.Mesh(
+        new THREE.BoxGeometry(1.75, 0.7, 0.08),
+        [
+          new THREE.MeshStandardMaterial({ color: 0x1e293b }),
+          new THREE.MeshStandardMaterial({ color: 0x1e293b }),
+          new THREE.MeshStandardMaterial({ color: 0x1e293b }),
+          new THREE.MeshStandardMaterial({ color: 0x1e293b }),
+          new THREE.MeshBasicMaterial({ map: tex }),
+          new THREE.MeshBasicMaterial({ map: tex })
+        ]
+      );
+      board.position.y = 1.35;
+      board.castShadow = true;
+      group.add(board);
+
+      return {
+        group,
+        updateOwner(newOwner) {
+          drawHouseSignCanvas(canvas, houseNum, newOwner);
+          tex.needsUpdate = true;
+        }
+      };
+    }
+
+    function drawNameTagCanvas(canvas, text) {
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "rgba(9, 13, 22, 0.78)";
       ctx.beginPath(); ctx.roundRect(12, 10, 232, 42, 12); ctx.fill();
-      ctx.strokeStyle = talking ? "#4ade80" : "rgba(56, 189, 248, 0.65)";
-      ctx.lineWidth = talking ? 3 : 2;
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.65)";
+      ctx.lineWidth = 2;
       ctx.stroke();
       ctx.fillStyle = "#f8fafc"; ctx.font = "bold 22px system-ui, sans-serif";
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(talking ? `🔊 ${text}` : text, 128, 31);
+      ctx.fillText(text, 128, 31);
     }
 
     function makeNameTagSprite(text) {
       const c = document.createElement("canvas"); c.width = 256; c.height = 64;
-      drawNameTagCanvas(c, text, false);
+      drawNameTagCanvas(c, text);
       const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
       sp.scale.set(1.5, 0.38, 1); sp.position.set(0, 2.15, 0);
@@ -978,7 +985,7 @@
     const grassTileTex = makeGrassTileTexture(), sandTileTex = makeSandTileTexture();
     const waterTex = makeWaterTexture(), metalRoughTex = makeMetalRoughnessTexture();
 
-    // --- СЦЕНА, КАМЕРА, НЕБО И ОБЛАКА ---
+    // --- СЦЕНА, КАМЕРА, НЕБО И ОСВЕЩЕНИЕ ---
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x93c5fd, 0.0017);
     const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 1600);
@@ -992,19 +999,30 @@
     const skyMat = new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false,
       uniforms: {
-        topColor: { value: new THREE.Color(0x0b2559) }, midColor: { value: new THREE.Color(0x38bdf8) },
-        horizonColor: { value: new THREE.Color(0xfde68a) }, sunDir: { value: new THREE.Vector3(0.55, 0.48, -0.68).normalize() }
+        dayTop: { value: new THREE.Color(0x0b2559) },
+        dayMid: { value: new THREE.Color(0x38bdf8) },
+        dayHorizon: { value: new THREE.Color(0xfde68a) },
+        nightTop: { value: new THREE.Color(0x020617) },
+        nightMid: { value: new THREE.Color(0x0f172a) },
+        nightHorizon: { value: new THREE.Color(0x1e293b) },
+        nightFactor: { value: 0.0 },
+        sunDir: { value: new THREE.Vector3(0.55, 0.48, -0.68).normalize() }
       },
       vertexShader: `varying vec3 vWorldDir; void main() { vWorldDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: `
-        uniform vec3 topColor; uniform vec3 midColor; uniform vec3 horizonColor; uniform vec3 sunDir;
+        uniform vec3 dayTop; uniform vec3 dayMid; uniform vec3 dayHorizon;
+        uniform vec3 nightTop; uniform vec3 nightMid; uniform vec3 nightHorizon;
+        uniform float nightFactor; uniform vec3 sunDir;
         varying vec3 vWorldDir;
         void main() {
+          vec3 topColor = mix(dayTop, nightTop, nightFactor);
+          vec3 midColor = mix(dayMid, nightMid, nightFactor);
+          vec3 horizonColor = mix(dayHorizon, nightHorizon, nightFactor);
           float h = clamp(vWorldDir.y, 0.0, 1.0);
           vec3 col = mix(horizonColor, midColor, smoothstep(0.0, 0.25, h));
           col = mix(col, topColor, smoothstep(0.22, 0.85, h));
           float sunAmt = max(dot(normalize(vWorldDir), sunDir), 0.0);
-          col += vec3(1.0, 0.85, 0.55) * pow(sunAmt, 48.0) * 0.65;
+          col += vec3(1.0, 0.85, 0.55) * pow(sunAmt, 48.0) * 0.65 * (1.0 - nightFactor * 0.85);
           gl_FragColor = vec4(col, 1.0);
         }
       `
@@ -1027,7 +1045,8 @@
       scene.add(cg); clouds.push(cg);
     }
 
-    scene.add(new THREE.HemisphereLight(0xbae6fd, 0x334155, 1.1));
+    const hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x334155, 1.1);
+    scene.add(hemiLight);
     const sunLight = new THREE.DirectionalLight(0xfffbeb, 2.35);
     sunLight.position.set(105, 125, -90); sunLight.castShadow = true; sunLight.shadow.mapSize.set(2048, 2048);
     const sBound = 165;
@@ -1036,7 +1055,7 @@
     sunLight.shadow.camera.far = 400; sunLight.shadow.bias = -0.0005;
     scene.add(sunLight);
 
-    // --- МИР, ОПТИМИЗИРОВАННАЯ 3D-ТРАВА, ПАЛЬМЫ И ДЕРЕВЬЯ ---
+    // --- МИР, 3D-ТРАВА, ДОРОГИ И УЛИЧНЫЕ ФОНАРИ ---
     const cityGround = new THREE.Mesh(new THREE.PlaneGeometry(390, 520), new THREE.MeshStandardMaterial({ map: grassTileTex, roughness: 0.92 }));
     cityGround.rotation.x = -Math.PI / 2; cityGround.position.set(-25, 0.02, 0); cityGround.receiveShadow = true; scene.add(cityGround);
 
@@ -1068,6 +1087,52 @@
       const rd = new THREE.Mesh(new THREE.PlaneGeometry(420, 14), new THREE.MeshStandardMaterial({ map: hRoadTex, roughness: 0.82 }));
       rd.rotation.x = -Math.PI / 2; rd.position.set(-5, 0.154, rz); rd.receiveShadow = true; scene.add(rd);
     }
+
+    // Лампы вдоль дорог (освещают дороги ночью)
+    const streetLamps = [];
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7, roughness: 0.35 });
+    const lampBulbMat = new THREE.MeshStandardMaterial({
+      color: 0xfef08a,
+      emissive: 0xffb703,
+      emissiveIntensity: 0.0,
+      roughness: 0.2
+    });
+    const lampSpots = [
+      { x: -112, z: -90, armX: 1.3 }, { x: -112, z: 0, armX: 1.3 }, { x: -112, z: 90, armX: 1.3 },
+      { x: -22, z: -90, armX: 1.3 }, { x: -22, z: 0, armX: 1.3 }, { x: -22, z: 90, armX: 1.3 },
+      { x: 68, z: -90, armX: 1.3 }, { x: 68, z: 0, armX: 1.3 }, { x: 68, z: 90, armX: 1.3 },
+      { x: 137, z: -90, armX: 1.3 }, { x: 137, z: 0, armX: 1.3 }, { x: 137, z: 90, armX: 1.3 },
+      { x: -75, z: -132, armZ: 1.3 }, { x: 15, z: -132, armZ: 1.3 }, { x: 102, z: -132, armZ: 1.3 },
+      { x: -75, z: 53, armZ: -1.3 }, { x: 15, z: 53, armZ: -1.3 }, { x: 102, z: 53, armZ: -1.3 }
+    ];
+    lampSpots.forEach((sp, idx) => {
+      const lg = new THREE.Group();
+      lg.position.set(sp.x, 0.14, sp.z);
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.15, 6.2, 8), poleMat);
+      pole.position.y = 3.1;
+      pole.castShadow = true;
+      lg.add(pole);
+
+      const bx = sp.armX || 0;
+      const bz = sp.armZ || 0;
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(bx) + 0.2, 0.12, Math.abs(bz) + 0.2), poleMat);
+      arm.position.set(bx * 0.5, 6.2, bz * 0.5);
+      lg.add(arm);
+
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), lampBulbMat);
+      bulb.position.set(bx, 6.08, bz);
+      lg.add(bulb);
+
+      let ptLight = null;
+      if (idx < 6) {
+        ptLight = new THREE.PointLight(0xffbe3b, 0, 26, 1.5);
+        ptLight.position.set(bx, 5.7, bz);
+        lg.add(ptLight);
+      }
+
+      scene.add(lg);
+      streetLamps.push({ group: lg, ptLight });
+    });
 
     const bladeGeo = new THREE.ConeGeometry(0.055, 0.42, 3);
     bladeGeo.translate(0, 0.21, 0);
@@ -1291,13 +1356,14 @@
     }
     buildFlatAutoShop(102, 92);
 
-    const houseColors = ["#f8fafc", "#fde68a", "#bfdbfe", "#fecdd3", "#bbf7d0"];
-    const roofColors = ["#7f1d1d", "#1e3a8a", "#065f46", "#581c87", "#78350f"];
+    // --- ПОКУПАЕМЫЕ ДОМА И ТАБЛИЧКИ ---
+    const houseColors = ["#f8fafc", "#fde68a", "#bfdbfe", "#fecdd3", "#bbf7d0", "#ddd6fe"];
+    const roofColors = ["#7f1d1d", "#1e3a8a", "#065f46", "#581c87", "#78350f", "#1e293b"];
     const houseSpots = [
       { x: -165, z: -95 }, { x: -165, z: -20 }, { x: -165, z: 95 },
       { x: -75, z: -185 }, { x: 15, z: -185 }, { x: 102, z: -185 }
     ];
-    let ownedHouses = new Set([0]);
+    let serverHousesOwners = {}; // houseIdx -> ownerNick
     let activeHouseInteriorIdx = null;
 
     const homeCenterX = 0, homeCenterZ = 120;
@@ -1328,28 +1394,44 @@
 
       const doorMesh = new THREE.Mesh(
         new THREE.BoxGeometry(1.4, 2.4, 0.2),
-        new THREE.MeshStandardMaterial({ color: ownedHouses.has(idx) ? 0x22c55e : 0x475569, roughness: 0.5 })
+        new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.5 })
       );
       doorMesh.position.set(hs.x, 1.35, hs.z + 6.08);
       scene.add(doorMesh);
 
+      const signBoard = makeHouseSignBoard(idx + 1, null);
+      signBoard.group.position.set(hs.x + 2.5, 0.15, hs.z + 6.75);
+      scene.add(signBoard.group);
+
       const entryX = hs.x, entryZ = hs.z + 7.6;
-      const ring = addCheckpointRing(entryX, 0.15, entryZ, ownedHouses.has(idx) ? 0x4ade80 : 0x38bdf8, 1.5);
+      const ring = addCheckpointRing(entryX, 0.15, entryZ, 0x38bdf8, 1.5);
       const zone = {
-        label: ownedHouses.has(idx) ? `[E] Войти в свой дом №${idx + 1}` : `[E] Купить дом №${idx + 1} ($500)`,
+        label: `[E] Купить дом №${idx + 1} ($500)`,
         x: entryX, z: entryZ, radius: 2.4,
         action: "house_door", houseIdx: idx, requiresCar: false, yPlane: 0.15
       };
       actionZones.push(zone);
-      houseEntries.push({ idx, doorMesh, ring, zone, entryX, entryZ });
+      houseEntries.push({ idx, doorMesh, ring, zone, entryX, entryZ, signBoard });
     });
 
-    function refreshHouseDoors() {
+    function refreshHousesState(housesMap) {
+      serverHousesOwners = housesMap || {};
       for (const he of houseEntries) {
-        const isOwned = ownedHouses.has(he.idx);
-        he.doorMesh.material.color.setHex(isOwned ? 0x22c55e : 0x475569);
-        he.ring.material.color.setHex(isOwned ? 0x4ade80 : 0x38bdf8);
-        he.zone.label = isOwned ? `[E] Войти в свой дом №${he.idx + 1}` : `[E] Купить дом №${he.idx + 1} ($500)`;
+        const owner = serverHousesOwners[String(he.idx)] || null;
+        he.signBoard.updateOwner(owner);
+        if (owner === playerNick) {
+          he.doorMesh.material.color.setHex(0x22c55e);
+          he.ring.material.color.setHex(0x4ade80);
+          he.zone.label = `[E] Войти в свой дом №${he.idx + 1}`;
+        } else if (owner) {
+          he.doorMesh.material.color.setHex(0xf59e0b);
+          he.ring.material.color.setHex(0xfbbf24);
+          he.zone.label = `Дом №${he.idx + 1} куплен (${owner})`;
+        } else {
+          he.doorMesh.material.color.setHex(0x475569);
+          he.ring.material.color.setHex(0x38bdf8);
+          he.zone.label = `[E] Купить дом №${he.idx + 1} ($500)`;
+        }
       }
     }
     mapPOIs.push({ name: "Жилой квартал", icon: "🏡", color: "#4ade80", x: -165, z: -20 });
@@ -1453,16 +1535,15 @@
       const muzzleFlash = new THREE.Mesh(new THREE.SphereGeometry(0.085, 8, 8), new THREE.MeshBasicMaterial({ color: 0xfef08a }));
       muzzleFlash.position.set(0, 0.025, -0.24); muzzleFlash.visible = false; gun.add(muzzleFlash);
 
-      let tagObj = null, currentTagText = nameTag || "Player", currentTagTalking = false;
+      let tagObj = null, currentTagText = nameTag || "Player";
       if (nameTag) { tagObj = makeNameTagSprite(nameTag); root.add(tagObj.sprite); }
 
-      function refreshTag() {
+      function setNameTag(newText) {
         if (!tagObj) return;
-        drawNameTagCanvas(tagObj.canvas, currentTagText, currentTagTalking);
+        currentTagText = newText;
+        drawNameTagCanvas(tagObj.canvas, currentTagText);
         tagObj.tex.needsUpdate = true;
       }
-      function setNameTag(newText) { if (!tagObj) return; currentTagText = newText; refreshTag(); }
-      function setTalkingState(talking) { if (!tagObj || currentTagTalking === talking) return; currentTagTalking = talking; refreshTag(); }
 
       const rig = { root, pelvis, torsoPivot, headPivot, hairPivot, leftLeg, rightLeg, leftArm, rightArm, gun, longBarrel, muzzleFlash, animPhase: 0, recoil: 0 };
 
@@ -1541,16 +1622,16 @@
         }
       }
 
-      return { ...rig, updateAnim, setWeaponModel, applyStyle, applyOutfitById, setNameTag, setTalkingState };
+      return { ...rig, updateAnim, setWeaponModel, applyStyle, applyOutfitById, setNameTag };
     }
 
-    const player = createCharacter({ shirtColor: "#e11d48", stripeColor: "#fbbf24", pantsColor: "#1e3a5f", hairColor: 0x1c1410, beard: true, nameTag: "Player" });
+    const player = createCharacter({ shirtColor: "#e11d48", stripeColor: "#fbbf24", pantsColor: "#1e3a5f", hairColor: 0x1c1410, beard: true, nameTag: playerNick });
     const OFFLINE_SPAWN = new THREE.Vector3(22, 0.15, -36);
     const ONLINE_SPAWN = new THREE.Vector3(60, 0.15, -20);
     player.root.position.copy(OFFLINE_SPAWN);
     scene.add(player.root);
 
-    // --- РАЗНЫЕ ВИДЫ АВТО (СКОРОСТЬ ЗАВИСИТ ОТ РЕДКОСТИ), ФИЗИКА 1.0.1 С ДЕФОРМАЦИЕЙ ---
+    // --- МАШИНЫ ---
     const carClasses = [
       { clsName: "Седан (Частый)", maxSpeed: 28, accel: 22, color: 0x38bdf8, scaleX: 1.0, scaleY: 1.0, scaleZ: 1.0 },
       { clsName: "Внедорожник (Обычный)", maxSpeed: 31, accel: 24, color: 0x10b981, scaleX: 1.06, scaleY: 1.14, scaleZ: 1.04 },
@@ -1669,7 +1750,7 @@
         id: "car_" + (nextCarId++),
         spec, turretPivot,
         group, wheels, driverSeatSlot, npcDriver,
-        ownerPeerId: null,
+        ownerClientId: null,
         vel: new THREE.Vector3(), yaw: 0, pitch: 0, roll: 0,
         angVelX: 0, angVelY: 0, angVelZ: 0, steerAngle: 0,
         grounded: true, hp: isTank ? 400 : 100,
@@ -1714,7 +1795,6 @@
       return { ...carObj, applyDamage, repairAndPaint, popWheel };
     }
 
-    // --- МАШИНЫ НА УЛИЦАХ ---
     const allCars = [];
     let activeCar = null;
     let inCar = false;
@@ -1828,7 +1908,7 @@
           equippedOutfit = o.id;
           player.applyOutfitById(o.id);
           previewChar.applyOutfitById(o.id);
-          broadcastNetMessage({ type: "outfit", outfit: equippedOutfit, nick: playerNick });
+          sendWsMessage({ type: "outfit", outfit: equippedOutfit });
           renderWardrobeGrid();
           showToast(`Надето: ${o.name}`);
         });
@@ -1836,91 +1916,44 @@
       });
     }
 
-    // --- ОНЛАЙН (PeerJS) + ГОЛОСОВОЙ ЧАТ [V] ---
+    // --- WEBSOCKET КЛИЕНТ ДЛЯ СЕРВЕРА ---
     const MAX_PLAYERS = 15;
-    const MAX_MY_HOSTS_PER_IP = 2;
-    const VOICE_MAX_RADIUS = 38;
-    const HEARTBEAT_INTERVAL_MS = 2000;
-    const PEER_TIMEOUT_MS = 6500;
-
-    let peer = null;
-    let connections = [];
-    let voiceCalls = new Map();
-    let localMicStream = null;
-    let micPermissionRequested = false;
-    let isPushToTalkActive = false;
-
-    let heartbeatTimerId = null;
-    let watchdogTimerId = null;
-
-    let isHost = false;
+    let ws = null;
+    let myClientId = null;
     let currentRoomId = null;
     let sessionMode = "lobby";
+    let serverCycleStart = Date.now();
+    let publicRoomsList = [];
     const remotePlayers = new Map();
 
-    function getMyIpHostedRooms() {
-      try { return JSON.parse(localStorage.getItem("leonida_my_ip_hosts_v5") || "[]"); }
-      catch { return []; }
-    }
-    function saveMyIpHostedRooms(arr) {
-      localStorage.setItem("leonida_my_ip_hosts_v5", JSON.stringify(arr.slice(0, MAX_MY_HOSTS_PER_IP)));
-      updateHostQuotaBadge();
-    }
-    function updateHostQuotaBadge() {
-      const cnt = Math.min(MAX_MY_HOSTS_PER_IP, getMyIpHostedRooms().length);
-      document.getElementById("hostQuotaBadge").textContent = `моих хостов: ${cnt}/${MAX_MY_HOSTS_PER_IP}`;
+    function getWsUrl() {
+      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+      return `${proto}//${window.location.host}`;
     }
 
-    function getAllServerCatalog() {
-      try { return JSON.parse(localStorage.getItem("leonida_server_catalog_v5") || "[]"); }
-      catch { return []; }
-    }
-    function saveAllServerCatalog(arr) {
-      localStorage.setItem("leonida_server_catalog_v5", JSON.stringify(arr.slice(0, 40)));
-      renderServersList();
-    }
-    function upsertServerInCatalog(roomObj) {
-      const list = getAllServerCatalog().filter(r => r.id !== roomObj.id);
-      list.unshift(roomObj);
-      saveAllServerCatalog(list);
-    }
-    function removeServerFromCatalog(roomId) {
-      const list = getAllServerCatalog().filter(r => r.id !== roomId);
-      saveAllServerCatalog(list);
-      const updatedMyHosts = getMyIpHostedRooms().filter(h => h.id !== roomId);
-      saveMyIpHostedRooms(updatedMyHosts);
+    function sendWsMessage(obj) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(obj));
+      }
     }
 
     function renderServersList() {
+      document.getElementById("lobbyRoomsCount").textContent = `${publicRoomsList.length} шт.`;
       const list = document.getElementById("serverList");
-      const rooms = getAllServerCatalog();
       list.innerHTML = "";
-      if (rooms.length === 0) {
-        list.innerHTML = `<div style="color:#94a3b8;font-size:13px;">Список пока пуст. Нажми «Создать свою» или подключись по ID друга.</div>`;
+      if (publicRoomsList.length === 0) {
+        list.innerHTML = `<div style="color:#94a3b8;font-size:13px;">Активных серверов пока нет. Нажми «Создать новый» — и сервер появится у всех!</div>`;
         return;
       }
-      rooms.forEach((r) => {
-        const amIInThisRoom = sessionMode === "online" && currentRoomId === r.id;
-        const countNow = amIInThisRoom ? (1 + remotePlayers.size) : (r.count || 0);
-        const statusTag = amIInThisRoom ? " · <b>Онлайн</b>" : (countNow > 0 ? " · <b>Активен</b>" : " · <span style='color:#94a3b8;'>Оффлайн</span>");
+      publicRoomsList.forEach((r) => {
+        const inThis = sessionMode === "online" && currentRoomId === r.id;
         const row = document.createElement("div");
         row.className = "server-row";
-        row.innerHTML = `<div><b>${r.title}</b> <span style="color:#94a3b8;">(${r.id})</span> · <b>${Math.min(MAX_PLAYERS, countNow)}/${MAX_PLAYERS}</b>${statusTag}</div>`;
-
-        const actions = document.createElement("div");
-        actions.className = "srv-actions";
-        const joinBtn = document.createElement("button");
-        joinBtn.textContent = amIInThisRoom ? "В комнате" : "Войти";
-        joinBtn.addEventListener("click", () => joinRoomById(r.id));
-
-        const delBtn = document.createElement("button");
-        delBtn.className = "del-btn";
-        delBtn.textContent = "✕";
-        delBtn.addEventListener("click", () => removeServerFromCatalog(r.id));
-
-        actions.appendChild(joinBtn);
-        actions.appendChild(delBtn);
-        row.appendChild(actions);
+        row.innerHTML = `<div><b>${r.title || r.id}</b> <span style="color:#94a3b8;">(${r.id})</span> · <b>${r.count}/${r.max || MAX_PLAYERS}</b>${inThis ? " · <b>Вы тут</b>" : ""}</div>`;
+        const btn = document.createElement("button");
+        btn.textContent = inThis ? "В игре" : "Войти";
+        btn.addEventListener("click", () => joinOrCreateServerRoom(r.id, r.title));
+        row.appendChild(btn);
         list.appendChild(row);
       });
     }
@@ -1929,10 +1962,10 @@
       const rows = document.getElementById("playerRows");
       rows.innerHTML = "";
       if (sessionMode !== "online") {
-        document.getElementById("boardCount").textContent = `1/${MAX_PLAYERS} (Оффлайн)`;
+        document.getElementById("boardCount").textContent = `1/${MAX_PLAYERS} (${sessionMode === "offline" ? "Оффлайн" : "Лобби"})`;
         const r = document.createElement("div");
         r.className = "player-item";
-        r.innerHTML = `<div><b>${playerNick}</b> <span style="color:#94a3b8;">(${getOutfitById(equippedOutfit).name}${inCar && activeCar ? " · " + activeCar.spec.clsName : ""})</span></div><span class="badge-you">ОФФЛАЙН</span>`;
+        r.innerHTML = `<div><b>${playerNick}</b> <span style="color:#94a3b8;">(${getOutfitById(equippedOutfit).name})</span></div><span class="badge-you">$${money}</span>`;
         rows.appendChild(r);
         return;
       }
@@ -1942,330 +1975,161 @@
 
       const selfRow = document.createElement("div");
       selfRow.className = "player-item";
-      selfRow.innerHTML = `<div><b>${playerNick}</b> <span style="color:#94a3b8;">(${getOutfitById(equippedOutfit).name}${inCar ? " · В авто" : ""}${isHost ? " · Хост" : ""})</span></div><span class="badge-you">${isPushToTalkActive ? "🔊 ГОВОРИТ" : "ВЫ · $" + money}</span>`;
+      selfRow.innerHTML = `<div><b>${playerNick}</b> <span style="color:#94a3b8;">(${getOutfitById(equippedOutfit).name}${inCar ? " · В авто" : ""})</span></div><span class="badge-you">ВЫ · $${money}</span>`;
       rows.appendChild(selfRow);
 
-      let idx = 2;
-      for (const [peerId, rpData] of remotePlayers.entries()) {
+      for (const [, rp] of remotePlayers.entries()) {
         const pRow = document.createElement("div");
         pRow.className = "player-item";
-        const outfitLabel = getOutfitById(rpData.outfit || "street").name;
-        pRow.innerHTML = `<div><b>${rpData.nick || ("Игрок #" + idx)}</b> <span style="color:#94a3b8;font-size:12px;">${outfitLabel}${rpData.inCar ? " · В авто" : ""} · ${peerId.slice(0, 8)}</span></div><span class="badge-peer">${rpData.talking ? "🔊 РАДИУС" : "ОНЛАЙН"}</span>`;
+        pRow.innerHTML = `<div><b>${rp.nick}</b> <span style="color:#94a3b8;font-size:12px;">${getOutfitById(rp.outfit || "street").name}${rp.inCar ? " · В авто" : ""}</span></div><span class="badge-peer">ОНЛАЙН</span>`;
         rows.appendChild(pRow);
-        idx++;
       }
     }
 
     function updatePlayersCounter() {
       if (sessionMode === "online") {
-        const cnt = 1 + remotePlayers.size;
-        document.getElementById("playersCountText").textContent = `${cnt}/${MAX_PLAYERS}`;
-        if (isHost && currentRoomId) {
-          upsertServerInCatalog({ id: currentRoomId, title: `Комната ${playerNick}`, count: cnt, max: MAX_PLAYERS });
-        }
+        document.getElementById("playersCountText").textContent = `${1 + remotePlayers.size}/${MAX_PLAYERS} (${currentRoomId})`;
       } else {
         document.getElementById("playersCountText").textContent = `1/${MAX_PLAYERS} (Оффлайн)`;
       }
       renderPlayerBoard();
     }
 
-    function touchRemotePeer(peerId) {
-      const entry = remotePlayers.get(peerId);
-      if (entry) entry.lastSeenAt = performance.now();
-    }
-
-    function stopPeerHealthMonitors() {
-      if (heartbeatTimerId) { clearInterval(heartbeatTimerId); heartbeatTimerId = null; }
-      if (watchdogTimerId) { clearInterval(watchdogTimerId); watchdogTimerId = null; }
-    }
-
-    function startPeerHealthMonitors() {
-      stopPeerHealthMonitors();
-      heartbeatTimerId = setInterval(() => {
-        if (sessionMode !== "online") return;
-        const now = performance.now();
-        for (let i = connections.length - 1; i >= 0; i--) {
-          const c = connections[i];
-          if (!c || !c.open) {
-            if (c && c.peer) removeRemotePlayer(c.peer, "соединение закрыто");
-            connections.splice(i, 1);
-            continue;
-          }
-          try { c.send({ type: "ping", t: now }); }
-          catch (_) {
-            removeRemotePlayer(c.peer, "ошибка связи");
-            connections.splice(i, 1);
-          }
-        }
-      }, HEARTBEAT_INTERVAL_MS);
-
-      watchdogTimerId = setInterval(() => {
-        if (sessionMode !== "online") return;
-        const now = performance.now();
-        for (const [peerId, entry] of remotePlayers.entries()) {
-          const conn = connections.find(c => c.peer === peerId);
-          const isDead = !conn || !conn.open;
-          const isTimedOut = (now - (entry.lastSeenAt || now)) > PEER_TIMEOUT_MS;
-          if (isDead || isTimedOut) {
-            removeRemotePlayer(peerId, isTimedOut ? "таймаут (не отвечает)" : "отключился");
-          }
-        }
-      }, 1500);
-    }
-
-    async function ensureMicrophoneStream() {
-      if (localMicStream) return localMicStream;
-      if (micPermissionRequested) return null;
-      micPermissionRequested = true;
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        showToast("Микрофон недоступен в этом браузере", "rgba(239, 68, 68, 0.95)");
-        return null;
-      }
-      try {
-        localMicStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        localMicStream.getAudioTracks().forEach(t => { t.enabled = false; });
-        return localMicStream;
-      } catch (_) {
-        showToast("Нет доступа к микрофону", "rgba(239, 68, 68, 0.95)");
-        return null;
-      }
-    }
-
-    async function setPushToTalk(active) {
-      if (active === isPushToTalkActive) return;
-      const mBtn = document.getElementById("mVoiceBtn");
-      if (active) {
-        const stream = await ensureMicrophoneStream();
-        if (!stream) return;
-        stream.getAudioTracks().forEach(t => { t.enabled = true; });
-        isPushToTalkActive = true;
-        if (mBtn) mBtn.classList.add("active");
-        if (peer && sessionMode === "online") {
-          for (const [peerId] of remotePlayers.entries()) {
-            if (!voiceCalls.has(peerId)) {
-              try {
-                const call = peer.call(peerId, stream);
-                attachVoiceCallHandlers(call);
-              } catch (_) {}
-            }
-          }
-        }
-        broadcastNetMessage({ type: "voice_state", talking: true });
-      } else {
-        isPushToTalkActive = false;
-        if (mBtn) mBtn.classList.remove("active");
-        if (localMicStream) localMicStream.getAudioTracks().forEach(t => { t.enabled = false; });
-        broadcastNetMessage({ type: "voice_state", talking: false });
-      }
-      updateVoiceHudStatus();
+    function setLocalNick(newNick) {
+      playerNick = newNick;
+      nickInputEl.value = newNick;
+      document.getElementById("hudNick").textContent = newNick;
+      player.setNameTag(newNick);
+      refreshHousesState(serverHousesOwners);
       renderPlayerBoard();
     }
 
-    function attachVoiceCallHandlers(call) {
-      if (!call) return;
-      voiceCalls.set(call.peer, call);
-      call.on("stream", (remoteStream) => {
-        const entry = remotePlayers.get(call.peer);
-        if (!entry) return;
-        const audioEl = new Audio();
-        audioEl.srcObject = remoteStream;
-        audioEl.autoplay = true;
-        audioEl.play().catch(() => {});
-        try {
-          const AC = window.AudioContext || window.webkitAudioContext;
-          const vCtx = new AC();
-          const src = vCtx.createMediaStreamSource(remoteStream);
-          const gain = vCtx.createGain();
-          gain.gain.value = 1.0;
-          src.connect(gain);
-          gain.connect(vCtx.destination);
-          entry.audioEl = audioEl;
-          entry.gainNode = gain;
-          entry.vCtx = vCtx;
-        } catch (_) {
-          entry.audioEl = audioEl;
-        }
-      });
-      call.on("close", () => voiceCalls.delete(call.peer));
-      call.on("error", () => voiceCalls.delete(call.peer));
-    }
-
-    function updateProximityVoice(listenerPos) {
-      let anyHeard = false;
-      for (const [, entry] of remotePlayers.entries()) {
-        const dist = entry.rig.root.position.distanceTo(listenerPos);
-        const factor = entry.talking ? THREE.MathUtils.clamp(1 - dist / VOICE_MAX_RADIUS, 0, 1) : 0;
-        const vol = factor * factor;
-        if (entry.gainNode) entry.gainNode.gain.setTargetAtTime(vol, entry.vCtx.currentTime, 0.05);
-        else if (entry.audioEl) entry.audioEl.volume = vol;
-        if (entry.talking && vol > 0.02) anyHeard = true;
+    function requestNickChange() {
+      const clean = sanitizeNickname(nickInputEl.value);
+      if (!clean) {
+        nickInputEl.value = playerNick;
+        showToast("Ник от 2 до 16 символов без запрещённых слов.", "rgba(239, 68, 68, 0.95)");
+        return;
       }
-      updateVoiceHudStatus(anyHeard);
-    }
-
-    function updateVoiceHudStatus(hearingSomeone = false) {
-      const el = document.getElementById("voiceStatusText");
-      if (isPushToTalkActive) {
-        el.textContent = `ГОВОРИТ (${VOICE_MAX_RADIUS}м)`;
-        el.className = "voice-live";
-      } else if (hearingSomeone) {
-        el.textContent = "слышен голос рядом";
-        el.className = "voice-hear";
+      if (sessionMode === "online" && ws && ws.readyState === WebSocket.OPEN) {
+        sendWsMessage({ type: "change_nick", nick: clean });
       } else {
-        el.textContent = "выкл [V]";
-        el.className = "voice-off";
+        setLocalNick(clean);
+        showToast(`Ник изменён: ${clean}`);
       }
     }
 
-    function addRemotePlayer(peerId, nick = null, outfit = "street") {
-      if (remotePlayers.has(peerId)) return;
-      if (1 + remotePlayers.size >= MAX_PLAYERS) return;
-      const displayNick = sanitizeNickname(nick) || `Игрок_${peerId.slice(0, 5)}`;
-      const rp = createCharacter({ shirtColor: "#e11d48", stripeColor: "#fbbf24", pantsColor: "#1e3a5f", hairColor: 0x1c1410, beard: false, nameTag: displayNick });
-      rp.applyOutfitById(outfit);
-      const startPos = new THREE.Vector3(62, 0.15, -20);
+    document.getElementById("saveNickBtn").addEventListener("click", requestNickChange);
+    nickInputEl.addEventListener("change", requestNickChange);
+
+    function addRemotePlayer(pObj) {
+      if (!pObj || !pObj.id || pObj.id === myClientId) return;
+      if (remotePlayers.has(pObj.id)) return;
+      const nick = sanitizeNickname(pObj.nick) || pObj.nick || "Player";
+      const rp = createCharacter({ shirtColor: "#e11d48", stripeColor: "#fbbf24", pantsColor: "#1e3a5f", hairColor: 0x1c1410, beard: false, nameTag: nick });
+      rp.applyOutfitById(pObj.outfit || "street");
+      const startPos = new THREE.Vector3(pObj.x ?? 60, pObj.y ?? 0.15, pObj.z ?? -20);
       rp.root.position.copy(startPos);
       scene.add(rp.root);
-      remotePlayers.set(peerId, {
+
+      remotePlayers.set(pObj.id, {
         rig: rp,
-        nick: displayNick,
-        outfit,
-        inCar: false,
-        talking: false,
-        lastSeenAt: performance.now(),
+        nick,
+        outfit: pObj.outfit || "street",
+        inCar: !!pObj.inCar,
         targetPos: startPos.clone(),
-        targetYaw: 0,
+        targetYaw: pObj.yaw || 0,
         targetSpeed: 0,
         targetAiming: false,
-        smoothSpeed: 0,
-        audioEl: null,
-        gainNode: null,
-        vCtx: null
+        smoothSpeed: 0
       });
-      startPeerHealthMonitors();
-      updatePlayersCounter();
-      showToast(`${displayNick} вошёл в комнату (${1 + remotePlayers.size}/${MAX_PLAYERS})`);
-    }
-
-    function removeRemotePlayer(peerId, reason = "") {
-      const entry = remotePlayers.get(peerId);
-      if (entry) {
-        const name = entry.nick;
-        for (const c of allCars) {
-          if (c.ownerPeerId === peerId) c.ownerPeerId = null;
-        }
-        scene.remove(entry.rig.root);
-        try { entry.audioEl?.pause(); } catch (_) {}
-        try { entry.vCtx?.close(); } catch (_) {}
-        remotePlayers.delete(peerId);
-        updatePlayersCounter();
-        if (reason) showToast(`${name} удалён из сессии (${reason})`, "rgba(249, 115, 22, 0.92)");
-      }
-      for (let i = connections.length - 1; i >= 0; i--) {
-        if (connections[i].peer === peerId) {
-          try { connections[i].close(); } catch (_) {}
-          connections.splice(i, 1);
-        }
-      }
-      const call = voiceCalls.get(peerId);
-      if (call) {
-        try { call.close(); } catch (_) {}
-        voiceCalls.delete(peerId);
-      }
-    }
-
-    function cleanupOnlineSession() {
-      const wasHost = isHost;
-      const prevRoomId = currentRoomId;
-
-      stopPeerHealthMonitors();
-      setPushToTalk(false);
-
-      for (const [, call] of voiceCalls.entries()) {
-        try { call.close(); } catch (_) {}
-      }
-      voiceCalls.clear();
-
-      for (const c of connections) {
-        try { c.close(); } catch (_) {}
-      }
-      connections = [];
-
-      if (peer) {
-        try { peer.destroy(); } catch (_) {}
-        peer = null;
-      }
-
-      for (const peerId of Array.from(remotePlayers.keys())) {
-        removeRemotePlayer(peerId);
-      }
-
-      if (wasHost && prevRoomId) {
-        const existing = getAllServerCatalog().find(r => r.id === prevRoomId);
-        if (existing) upsertServerInCatalog({ ...existing, count: 0 });
-      }
-
-      isHost = false;
-      currentRoomId = null;
       updatePlayersCounter();
     }
 
-    function bindDataConnection(conn) {
-      conn.on("open", () => {
-        if (1 + remotePlayers.size >= MAX_PLAYERS) {
-          conn.send({ type: "full" });
-          conn.close();
-          return;
-        }
-        addRemotePlayer(conn.peer, null, "street");
-        conn.send({ type: "hello", nick: playerNick, outfit: equippedOutfit });
-      });
-      conn.on("data", (msg) => {
-        if (!msg || typeof msg !== "object") return;
-        touchRemotePeer(conn.peer);
+    function removeRemotePlayer(clientId) {
+      const entry = remotePlayers.get(clientId);
+      if (!entry) return;
+      for (const c of allCars) {
+        if (c.ownerClientId === clientId) c.ownerClientId = null;
+      }
+      scene.remove(entry.rig.root);
+      remotePlayers.delete(clientId);
+      updatePlayersCounter();
+    }
 
-        if (msg.type === "ping") {
-          try { conn.send({ type: "pong", t: msg.t }); } catch (_) {}
-          return;
-        }
-        if (msg.type === "pong") return;
-        if (msg.type === "full") {
-          showToast("Комната заполнена (максимум 15 игроков)!", "rgba(239, 68, 68, 0.92)");
-          return;
-        }
-        if (msg.type === "hello") {
-          const clean = sanitizeNickname(msg.nick);
-          const entry = remotePlayers.get(conn.peer);
-          if (entry) {
-            if (clean) { entry.nick = clean; entry.rig.setNameTag(clean); }
-            if (msg.outfit) { entry.outfit = msg.outfit; entry.rig.applyOutfitById(msg.outfit); }
-            renderPlayerBoard();
+    function clearRemotePlayers() {
+      for (const id of Array.from(remotePlayers.keys())) removeRemotePlayer(id);
+    }
+
+    function connectWebSocket() {
+      const url = getWsUrl();
+      document.getElementById("netStatus").textContent = "ПОДКЛЮЧЕНИЕ...";
+      const socket = new WebSocket(url);
+      ws = socket;
+
+      socket.addEventListener("open", () => {
+        if (ws !== socket) return;
+        document.getElementById("netStatus").textContent = "ОНЛАЙН (СЕРВЕР ПОДКЛЮЧЁН)";
+        sendWsMessage({ type: "get_rooms" });
+      });
+
+      socket.addEventListener("message", (ev) => {
+        let msg;
+        try { msg = JSON.parse(ev.data); } catch { return; }
+
+        if (msg.type === "welcome") {
+          myClientId = msg.id;
+          if (Array.isArray(msg.rooms)) {
+            publicRoomsList = msg.rooms;
+            renderServersList();
           }
-        } else if (msg.type === "outfit") {
-          const entry = remotePlayers.get(conn.peer);
-          if (entry && msg.outfit) {
-            entry.outfit = msg.outfit;
-            entry.rig.applyOutfitById(msg.outfit);
-            renderPlayerBoard();
+        } else if (msg.type === "rooms_list") {
+          publicRoomsList = Array.isArray(msg.rooms) ? msg.rooms : [];
+          renderServersList();
+        } else if (msg.type === "join_error") {
+          showToast(msg.reason || "Не удалось войти на сервер", "rgba(239, 68, 68, 0.95)");
+        } else if (msg.type === "joined") {
+          currentRoomId = msg.roomId;
+          sessionMode = "online";
+          serverCycleStart = msg.cycleStart || Date.now();
+          if (msg.yourNick) setLocalNick(msg.yourNick);
+          refreshHousesState(msg.houses || {});
+          clearRemotePlayers();
+          if (Array.isArray(msg.players)) {
+            for (const p of msg.players) addRemotePlayer(p);
           }
-        } else if (msg.type === "voice_state") {
-          const entry = remotePlayers.get(conn.peer);
-          if (entry) {
-            entry.talking = !!msg.talking;
-            entry.rig.setTalkingState(entry.talking);
-            renderPlayerBoard();
+          updatePlayersCounter();
+          enterWorldView(true);
+          showToast(`Ты на сервере ${msg.roomId} под ником ${playerNick}`);
+        } else if (msg.type === "player_joined") {
+          addRemotePlayer(msg.player);
+          showToast(`${msg.player.nick} зашёл на сервер`);
+        } else if (msg.type === "player_left") {
+          const left = remotePlayers.get(msg.id);
+          if (left) showToast(`${left.nick} вышел с сервера`);
+          removeRemotePlayer(msg.id);
+        } else if (msg.type === "nick_result") {
+          if (msg.ok) {
+            setLocalNick(msg.nick);
+            showToast(`Ник изменён на ${msg.nick}`);
+          } else {
+            nickInputEl.value = playerNick;
+            showToast(msg.reason || "Ник занят!", "rgba(239, 68, 68, 0.95)");
           }
-        } else if (msg.type === "car_sync") {
-          const car = allCars.find(c => c.id === msg.carId);
-          if (car && (!inCar || activeCar !== car)) {
-            car.group.position.set(msg.x, msg.y, msg.z);
-            car.yaw = msg.yaw;
-            car.group.rotation.y = msg.yaw;
-            car.ownerPeerId = msg.occupied ? conn.peer : null;
-            if (msg.occupied) car.isTraffic = false;
+        } else if (msg.type === "player_nick") {
+          const entry = remotePlayers.get(msg.id);
+          if (entry && msg.nick) {
+            entry.nick = msg.nick;
+            entry.rig.setNameTag(msg.nick);
           }
+          if (msg.houses) refreshHousesState(msg.houses);
+          renderPlayerBoard();
+        } else if (msg.type === "houses_update") {
+          refreshHousesState(msg.houses || {});
+        } else if (msg.type === "house_error") {
+          showToast(msg.reason || "Дом уже занят", "rgba(239, 68, 68, 0.95)");
         } else if (msg.type === "state") {
-          const entry = remotePlayers.get(conn.peer);
+          const entry = remotePlayers.get(msg.id);
           if (entry) {
             entry.targetPos.set(msg.x, msg.y, msg.z);
             entry.targetYaw = msg.yaw;
@@ -2277,107 +2141,51 @@
               entry.rig.applyOutfitById(msg.outfit);
             }
           }
+        } else if (msg.type === "outfit") {
+          const entry = remotePlayers.get(msg.id);
+          if (entry && msg.outfit) {
+            entry.outfit = msg.outfit;
+            entry.rig.applyOutfitById(msg.outfit);
+          }
+        } else if (msg.type === "car_sync") {
+          const car = allCars.find(c => c.id === msg.carId);
+          if (car && (!inCar || activeCar !== car)) {
+            car.group.position.set(msg.x, msg.y, msg.z);
+            car.yaw = msg.yaw;
+            car.group.rotation.y = msg.yaw;
+            car.ownerClientId = msg.occupied ? msg.id : null;
+            if (msg.occupied) car.isTraffic = false;
+          }
         } else if (msg.type === "shot") {
           spawnTracer(new THREE.Vector3(msg.sx, msg.sy, msg.sz), new THREE.Vector3(msg.ex, msg.ey, msg.ez));
         }
       });
-      conn.on("close", () => removeRemotePlayer(conn.peer, "вышел"));
-      conn.on("error", () => removeRemotePlayer(conn.peer, "ошибка соединения"));
-      connections.push(conn);
-    }
 
-    function createHostRoomAndEnter() {
-      if (!applyNickFromInput(false)) {
-        showToast("Сначала введи корректный ник.", "rgba(239, 68, 68, 0.95)");
-        return;
-      }
-      const myHosts = getMyIpHostedRooms();
-      if (myHosts.length >= MAX_MY_HOSTS_PER_IP) {
-        showToast(`Лимит: не более ${MAX_MY_HOSTS_PER_IP} хостов с одного IP/клиента!`, "rgba(239, 68, 68, 0.95)");
-        return;
-      }
-      if (typeof Peer === "undefined") {
-        showToast("PeerJS не загрузился", "rgba(239, 68, 68, 0.95)");
-        return;
-      }
-
-      cleanupOnlineSession();
-      const roomId = "leonida-" + Math.floor(1000 + Math.random() * 9000);
-      const newPeer = new Peer(roomId);
-      peer = newPeer;
-      isHost = true;
-      currentRoomId = roomId;
-      sessionMode = "online";
-      document.getElementById("netStatus").textContent = `СОЗДАНИЕ ХОСТА (${roomId})...`;
-
-      newPeer.on("open", (id) => {
-        if (peer !== newPeer) return;
-        const roomMeta = { id, title: `Комната ${playerNick}`, count: 1, max: MAX_PLAYERS };
-        saveMyIpHostedRooms([...myHosts, roomMeta]);
-        upsertServerInCatalog(roomMeta);
-        document.getElementById("netStatus").textContent = `ОНЛАЙН · ХОСТ ${id}`;
-        navigator.clipboard?.writeText(id).catch(() => {});
-        showCopiedIdModal(id, myHosts.length + 1);
-        startGameplay("online", id);
-      });
-
-      newPeer.on("connection", (conn) => bindDataConnection(conn));
-      newPeer.on("call", async (call) => {
-        const stream = await ensureMicrophoneStream();
-        if (stream) call.answer(stream);
-        else call.answer();
-        attachVoiceCallHandlers(call);
-      });
-      newPeer.on("error", (err) => {
-        showToast(`Ошибка хоста: ${err.type || "сети"}`, "rgba(239, 68, 68, 0.95)");
+      socket.addEventListener("close", () => {
+        if (ws !== socket) return;
+        document.getElementById("netStatus").textContent = "ПЕРЕПОДКЛЮЧЕНИЕ...";
+        setTimeout(() => {
+          if (sessionMode !== "offline") connectWebSocket();
+        }, 2500);
       });
     }
 
-    function joinRoomById(targetId) {
-      if (!applyNickFromInput(false)) {
-        showToast("Сначала введи корректный ник.", "rgba(239, 68, 68, 0.95)");
+    function joinOrCreateServerRoom(roomId = null, title = null) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        showToast("Соединение с сервером ещё устанавливается...", "rgba(249, 115, 22, 0.95)");
+        connectWebSocket();
         return;
       }
-      const cleanId = (targetId || "").trim();
-      if (!cleanId) return;
-      if (typeof Peer === "undefined") {
-        showToast("PeerJS не загрузился", "rgba(239, 68, 68, 0.95)");
-        return;
-      }
-
-      cleanupOnlineSession();
-      peer = new Peer();
-      isHost = false;
-      currentRoomId = cleanId;
-      sessionMode = "online";
-      document.getElementById("netStatus").textContent = `ПОДКЛЮЧЕНИЕ К ${cleanId}...`;
-
-      peer.on("open", () => {
-        const conn = peer.connect(cleanId);
-        bindDataConnection(conn);
-        document.getElementById("netStatus").textContent = `ОНЛАЙН · ${cleanId}`;
-        startGameplay("online", cleanId);
-      });
-
-      peer.on("call", async (call) => {
-        const stream = await ensureMicrophoneStream();
-        if (stream) call.answer(stream);
-        else call.answer();
-        attachVoiceCallHandlers(call);
+      const chosenId = (roomId || ("leonida-" + Math.floor(1000 + Math.random() * 9000))).trim();
+      const chosenNick = sanitizeNickname(nickInputEl.value) || playerNick || makeRandomNick();
+      sendWsMessage({
+        type: "create_or_join",
+        roomId: chosenId,
+        title: title || `Сервер ${chosenId}`,
+        nick: chosenNick,
+        outfit: equippedOutfit
       });
     }
-
-    function broadcastNetMessage(payload) {
-      if (sessionMode !== "online") return;
-      for (const c of connections) {
-        if (c.open) {
-          try { c.send(payload); } catch (_) {}
-        }
-      }
-    }
-
-    window.addEventListener("pagehide", () => { if (sessionMode === "online") cleanupOnlineSession(); });
-    window.addEventListener("beforeunload", () => { if (sessionMode === "online") cleanupOnlineSession(); });
 
     // --- УПРАВЛЕНИЕ СОСТОЯНИЕМ ---
     let inGameplay = false, isPausedGuiOpen = false, ignoreNextPointerUnlock = false;
@@ -2392,27 +2200,13 @@
       }
     }
 
-    function startGameplay(mode = "offline", roomId = null) {
+    function enterWorldView(isOnline) {
       closeAllModals();
-      if (!applyNickFromInput(false)) {
-        playerNick = "Player"; nickInputEl.value = "Player"; document.getElementById("hudNick").textContent = "Player";
-      }
       player.setNameTag(playerNick);
       player.applyOutfitById(equippedOutfit);
-
-      if (mode === "offline") {
-        cleanupOnlineSession();
-        sessionMode = "offline";
-        currentRoomId = null;
-        document.getElementById("netStatus").textContent = "ОФФЛАЙН (ОДИНОЧНЫЙ МИР)";
-        if (!inCar) teleportTo(OFFLINE_SPAWN.clone(), 0, null, false);
-      } else {
-        sessionMode = "online";
-        currentRoomId = roomId || currentRoomId;
-        if (!inCar) teleportTo(ONLINE_SPAWN.clone(), 0, null, false);
-        broadcastNetMessage({ type: "hello", nick: playerNick, outfit: equippedOutfit });
+      if (!inCar) {
+        teleportTo((isOnline ? ONLINE_SPAWN : OFFLINE_SPAWN).clone(), 0, null, false);
       }
-
       updatePlayersCounter();
       inGameplay = true;
       isPausedGuiOpen = false;
@@ -2428,7 +2222,6 @@
 
     function openPauseMenu() {
       if (!inGameplay) return;
-      setPushToTalk(false);
       isPausedGuiOpen = true; aiming = false; crosshair.classList.remove("aiming");
       document.getElementById("prompt").style.display = "none";
       pauseModal.classList.add("open");
@@ -2444,8 +2237,10 @@
 
     function returnToLobby() {
       closeAllModals();
-      cleanupOnlineSession();
-      inGameplay = false; isPausedGuiOpen = false; sessionMode = "lobby";
+      clearRemotePlayers();
+      currentRoomId = null;
+      sessionMode = "lobby";
+      inGameplay = false; isPausedGuiOpen = false;
       document.getElementById("playerListOverlay").classList.remove("visible");
       bigMapOverlay.classList.remove("visible");
       mobileControlsEl.classList.remove("active");
@@ -2455,17 +2250,28 @@
       }
       hudEl.classList.remove("visible"); crosshair.classList.remove("active");
       document.getElementById("prompt").style.display = "none";
-      document.getElementById("netStatus").textContent = "ОФФЛАЙН (ВНЕ МИРА)";
       lobbyScreen.classList.add("visible");
-      renderServersList(); updateHostQuotaBadge();
+      sendWsMessage({ type: "get_rooms" });
+      renderServersList();
     }
 
-    document.getElementById("playOfflineBtn").addEventListener("click", () => startGameplay("offline", null));
-    document.getElementById("createRoomBtn").addEventListener("click", createHostRoomAndEnter);
-    document.getElementById("hostNewRoomBtn").addEventListener("click", createHostRoomAndEnter);
-    document.getElementById("joinByCodeBtn").addEventListener("click", () => joinRoomById(document.getElementById("roomCodeInput").value));
+    document.getElementById("createRoomBtn").addEventListener("click", () => joinOrCreateServerRoom(null, null));
+    document.getElementById("hostNewRoomBtn").addEventListener("click", () => joinOrCreateServerRoom(null, null));
+    document.getElementById("joinByCodeBtn").addEventListener("click", () => {
+      const code = document.getElementById("roomCodeInput").value.trim();
+      if (!code) return;
+      joinOrCreateServerRoom(code, `Сервер ${code}`);
+    });
+    document.getElementById("playOfflineBtn").addEventListener("click", () => {
+      clearRemotePlayers();
+      currentRoomId = null;
+      sessionMode = "offline";
+      enterWorldView(false);
+    });
     document.getElementById("openServersBtn").addEventListener("click", () => {
-      renderServersList(); document.getElementById("serversModal").classList.add("open");
+      sendWsMessage({ type: "get_rooms" });
+      renderServersList();
+      document.getElementById("serversModal").classList.add("open");
     });
     document.getElementById("openWardrobeBtn").addEventListener("click", () => {
       renderWardrobeGrid(); document.getElementById("wardrobeModal").classList.add("open");
@@ -2474,7 +2280,9 @@
     document.getElementById("resumeGameBtn").addEventListener("click", resumeFromPauseMenu);
     document.getElementById("resumeFromHeaderBtn").addEventListener("click", resumeFromPauseMenu);
     document.getElementById("pauseServersBtn").addEventListener("click", () => {
-      renderServersList(); document.getElementById("serversModal").classList.add("open");
+      sendWsMessage({ type: "get_rooms" });
+      renderServersList();
+      document.getElementById("serversModal").classList.add("open");
     });
     document.getElementById("pauseWardrobeBtn").addEventListener("click", () => {
       renderWardrobeGrid(); document.getElementById("wardrobeModal").classList.add("open");
@@ -2543,6 +2351,7 @@
     const promptEl = document.getElementById("prompt");
     const bigMapOverlay = document.getElementById("bigMapOverlay"), bigMapCanvas = document.getElementById("bigMapCanvas");
     const bmCtx = bigMapCanvas.getContext("2d"), playerListOverlay = document.getElementById("playerListOverlay");
+    const timePhaseText = document.getElementById("timePhaseText");
 
     window.addEventListener("resize", () => {
       camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
@@ -2562,7 +2371,6 @@
       if (e.code === "Escape") { e.preventDefault(); if (isPausedGuiOpen) resumeFromPauseMenu(); else openPauseMenu(); return; }
       if (isPausedGuiOpen) return;
 
-      if (e.code === "KeyV" && !e.repeat) setPushToTalk(true);
       if (e.code === "Tab") { e.preventDefault(); renderPlayerBoard(); playerListOverlay.classList.add("visible"); }
       if (e.code === "KeyM") bigMapOverlay.classList.add("visible");
       if (e.code === "Digit1") selectWeapon(0);
@@ -2577,7 +2385,6 @@
 
     window.addEventListener("keyup", (e) => {
       keys[e.code] = false;
-      if (e.code === "KeyV") setPushToTalk(false);
       if (e.code === "Tab") playerListOverlay.classList.remove("visible");
       if (e.code === "KeyM") bigMapOverlay.classList.remove("visible");
     });
@@ -2629,7 +2436,6 @@
     document.getElementById("mActBtn").addEventListener("pointerdown", (e) => { e.stopPropagation(); if (activeAction) performZoneAction(activeAction); });
     document.getElementById("mFlipBtn").addEventListener("pointerdown", (e) => { e.stopPropagation(); flipCurrentCar(); });
     document.getElementById("mJumpBtn").addEventListener("pointerdown", (e) => { e.stopPropagation(); if (!inCar && grounded) { velY = 8.2; grounded = false; } });
-    document.getElementById("mVoiceBtn").addEventListener("pointerdown", (e) => { e.stopPropagation(); setPushToTalk(!isPushToTalkActive); });
 
     document.getElementById("mPlayersBtn").addEventListener("click", () => {
       renderPlayerBoard(); playerListOverlay.classList.toggle("visible");
@@ -2679,15 +2485,23 @@
       else if (zone.action === "rob_gun") robRegister(600, "Ограбление оружейной");
       else if (zone.action === "rob_burger") robRegister(350, "Ограбление закусочной");
       else if (zone.action === "house_door") {
-        if (ownedHouses.has(zone.houseIdx)) {
+        const owner = serverHousesOwners[String(zone.houseIdx)];
+        if (owner === playerNick) {
           activeHouseInteriorIdx = zone.houseIdx;
           teleportTo(new THREE.Vector3(homeCenterX, interiorY + 0.2, homeCenterZ + 4.5), 0, `Дом №${zone.houseIdx + 1} (Интерьер)`, false);
+        } else if (owner) {
+          showToast(`Дом №${zone.houseIdx + 1} принадлежит ${owner}`, "rgba(249, 115, 22, 0.95)");
         } else if (money >= 500) {
-          money -= 500; moneyText.textContent = money; ownedHouses.add(zone.houseIdx); refreshHouseDoors();
+          money -= 500; moneyText.textContent = money;
+          serverHousesOwners[String(zone.houseIdx)] = playerNick;
+          refreshHousesState(serverHousesOwners);
+          sendWsMessage({ type: "buy_house", houseIdx: zone.houseIdx });
           activeHouseInteriorIdx = zone.houseIdx;
           teleportTo(new THREE.Vector3(homeCenterX, interiorY + 0.2, homeCenterZ + 4.5), 0, `Дом №${zone.houseIdx + 1} (Интерьер)`, false);
-          showToast(`Дом №${zone.houseIdx + 1} куплен!`);
-        } else showToast("Нужно $500 для покупки дома", "rgba(239, 68, 68, 0.92)");
+          showToast(`Дом №${zone.houseIdx + 1} куплен! Табличка обновлена`);
+        } else {
+          showToast("Нужно $500 для покупки дома", "rgba(239, 68, 68, 0.92)");
+        }
       } else if (zone.action === "exit_house") {
         const spot = houseEntries[activeHouseInteriorIdx || 0];
         teleportTo(new THREE.Vector3(spot.entryX, 0.15, spot.entryZ + 1.4), 0, null, false);
@@ -2724,13 +2538,13 @@
         player.updateAnim(0.016, 0, true, false, false);
         velY = 0; grounded = true;
         carModelText.textContent = `Твоё авто: ${activeCar.spec.clsName}`;
-        broadcastNetMessage({ type: "car_sync", carId: activeCar.id, x: activeCar.group.position.x, y: activeCar.group.position.y, z: activeCar.group.position.z, yaw: activeCar.yaw, occupied: false });
+        sendWsMessage({ type: "car_sync", carId: activeCar.id, x: activeCar.group.position.x, y: activeCar.group.position.y, z: activeCar.group.position.z, yaw: activeCar.yaw, occupied: false });
         renderPlayerBoard();
       } else if (nearestCar) {
         activeCar = nearestCar;
         inCar = true;
         aiming = false; crosshair.classList.remove("aiming");
-        activeCar.ownerPeerId = peer ? peer.id : "local";
+        activeCar.ownerClientId = myClientId || "local";
         activeCar.isTraffic = false;
 
         if (activeCar.npcDriver) {
@@ -2755,7 +2569,7 @@
         player.updateAnim(0.016, 0, true, false, true);
         activeCar.driverSeatSlot.add(player.root);
         carModelText.textContent = `${activeCar.spec.clsName}`;
-        broadcastNetMessage({ type: "car_sync", carId: activeCar.id, x: activeCar.group.position.x, y: activeCar.group.position.y, z: activeCar.group.position.z, yaw: activeCar.yaw, occupied: true });
+        sendWsMessage({ type: "car_sync", carId: activeCar.id, x: activeCar.group.position.x, y: activeCar.group.position.y, z: activeCar.group.position.z, yaw: activeCar.yaw, occupied: true });
         renderPlayerBoard();
       }
     }
@@ -2794,7 +2608,7 @@
           }
         }
         spawnTracer(muzzleWorld, endPoint);
-        broadcastNetMessage({ type: "shot", sx: muzzleWorld.x, sy: muzzleWorld.y, sz: muzzleWorld.z, ex: endPoint.x, ey: endPoint.y, ez: endPoint.z });
+        sendWsMessage({ type: "shot", sx: muzzleWorld.x, sy: muzzleWorld.y, sz: muzzleWorld.z, ex: endPoint.x, ey: endPoint.y, ez: endPoint.z });
       }
     }
 
@@ -2884,6 +2698,39 @@
       bmCtx.fillStyle = "#facc15"; bmCtx.beginPath(); bmCtx.moveTo(0, -10); bmCtx.lineTo(-7, 8); bmCtx.lineTo(0, 4); bmCtx.lineTo(7, 8); bmCtx.closePath(); bmCtx.fill(); bmCtx.restore();
     }
 
+    // --- ЦИКЛ ДНЯ И НОЧИ ---
+    const DAY_CYCLE_MS = 120000;
+    function updateDayNightCycle() {
+      const refStart = sessionMode === "online" ? serverCycleStart : 0;
+      const phase = (((Date.now() - refStart) % DAY_CYCLE_MS) + DAY_CYCLE_MS) % DAY_CYCLE_MS / DAY_CYCLE_MS;
+      let nightFactor = 0;
+      if (phase >= 0.45 && phase < 0.55) {
+        nightFactor = (phase - 0.45) / 0.1;
+      } else if (phase >= 0.55 && phase < 0.9) {
+        nightFactor = 1.0;
+      } else if (phase >= 0.9) {
+        nightFactor = 1.0 - (phase - 0.9) / 0.1;
+      }
+
+      skyMat.uniforms.nightFactor.value = nightFactor;
+      const dayFog = new THREE.Color(0x93c5fd);
+      const nightFog = new THREE.Color(0x091124);
+      scene.fog.color.copy(dayFog).lerp(nightFog, nightFactor);
+
+      sunLight.intensity = THREE.MathUtils.lerp(2.35, 0.12, nightFactor);
+      hemiLight.intensity = THREE.MathUtils.lerp(1.1, 0.22, nightFactor);
+
+      const lampOnFactor = THREE.MathUtils.clamp((nightFactor - 0.35) / 0.5, 0, 1);
+      lampBulbMat.emissiveIntensity = lampOnFactor * 2.6;
+      for (const l of streetLamps) {
+        if (l.ptLight) l.ptLight.intensity = lampOnFactor * 6.5;
+      }
+
+      if (nightFactor > 0.65) timePhaseText.textContent = "Ночь";
+      else if (nightFactor > 0.15) timePhaseText.textContent = "Сумерки";
+      else timePhaseText.textContent = "День";
+    }
+
     // --- ОСНОВНОЙ ЦИКЛ ---
     const clock = new THREE.Clock();
     let elapsed = 0, netSyncTimer = 0;
@@ -2892,6 +2739,8 @@
       requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.05); elapsed += dt;
       if (fireCooldown > 0) fireCooldown -= dt; if (robCooldown > 0) robCooldown -= dt;
+
+      updateDayNightCycle();
 
       skyDome.position.copy(camera.position);
       for (const cg of clouds) { cg.position.x += cg.speedX * dt; if (cg.position.x > 580) cg.position.x = -580; }
@@ -2998,7 +2847,7 @@
         if (!currentInteriorName) {
           let bestDist = 4.6;
           for (const c of allCars) {
-            if (c.ownerPeerId && c.ownerPeerId !== (peer ? peer.id : "local")) continue;
+            if (c.ownerClientId && c.ownerClientId !== (myClientId || "local")) continue;
             const d = player.root.position.distanceTo(c.group.position);
             if (d < bestDist) { bestDist = d; nearestCar = c; }
           }
@@ -3129,12 +2978,10 @@
         entry.rig.updateAnim(dt, entry.smoothSpeed, true, entry.targetAiming, entry.inCar);
       }
 
-      if (sessionMode === "online") updateProximityVoice(playerRefPos);
-
       netSyncTimer += dt;
-      if (netSyncTimer >= 0.06 && sessionMode === "online" && connections.length > 0) {
+      if (netSyncTimer >= 0.06 && sessionMode === "online" && ws && ws.readyState === WebSocket.OPEN) {
         netSyncTimer = 0;
-        broadcastNetMessage({
+        sendWsMessage({
           type: "state",
           x: playerRefPos.x,
           y: playerRefPos.y,
@@ -3146,7 +2993,7 @@
           outfit: equippedOutfit
         });
         if (inCar && activeCar) {
-          broadcastNetMessage({
+          sendWsMessage({
             type: "car_sync",
             carId: activeCar.id,
             x: activeCar.group.position.x,
@@ -3253,6 +3100,7 @@
       renderer.render(scene, camera);
     }
 
+    connectWebSocket();
     animate();
   </script>
 </body>
