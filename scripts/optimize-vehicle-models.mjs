@@ -21,7 +21,7 @@ async function directoryStats(folder) {
       const full = path.join(current, entry.name);
       if (entry.isDirectory()) {
         await walk(full);
-      } else if (entry.isFile() && entry.name !== "scene-optimized.glb") {
+      } else if (entry.isFile() && !["scene-optimized.glb", "scene-lod.glb"].includes(entry.name)) {
         const stat = await fs.stat(full);
         bytes += stat.size;
         files++;
@@ -51,65 +51,74 @@ function geometryStats(document) {
   return { triangles: Math.round(triangles), vertices, primitives };
 }
 
-for (const vehicle of manifest.vehicles) {
-  const folder = path.dirname(path.join(root, vehicle.model));
-  const inputPath = path.join(folder, "scene.gltf");
-  const outputPath = path.join(folder, "scene-optimized.glb");
-
-  console.log("\nOptimizing " + vehicle.name);
-  const originalFiles = await directoryStats(folder);
+async function optimizeDocument(inputPath, outputPath, ratio, error, maxTextureSize) {
   const document = await io.read(inputPath);
   const before = geometryStats(document);
-
   await document.transform(
     dedup(),
     weld({}),
-    simplify({
-      simplifier: MeshoptSimplifier,
-      ratio: 0.62,
-      error: 0.0025
-    }),
-    textureCompress({
-      encoder: sharp,
-      resize: [1024, 1024]
-    }),
+    simplify({ simplifier: MeshoptSimplifier, ratio, error }),
+    textureCompress({ encoder: sharp, resize: [maxTextureSize, maxTextureSize] }),
     prune()
   );
-
   const after = geometryStats(document);
   await io.write(outputPath, document);
   const outputStat = await fs.stat(outputPath);
-  const triangleReduction = before.triangles > 0
-    ? Math.round((1 - after.triangles / before.triangles) * 1000) / 10
-    : 0;
-  const byteReduction = originalFiles.bytes > 0
-    ? Math.round((1 - outputStat.size / originalFiles.bytes) * 1000) / 10
-    : 0;
+  return { before, after, bytes: outputStat.size };
+}
 
-  vehicle.optimizedModel = path.relative(root, outputPath).split(path.sep).join("/");
+for (const vehicle of manifest.vehicles) {
+  const folder = path.dirname(path.join(root, vehicle.model));
+  const inputPath = path.join(folder, "scene.gltf");
+  const highPath = path.join(folder, "scene-optimized.glb");
+  const farPath = path.join(folder, "scene-lod.glb");
+
+  console.log("\nOptimizing " + vehicle.name);
+  const originalFiles = await directoryStats(folder);
+
+  const high = await optimizeDocument(inputPath, highPath, 0.62, 0.0025, 1024);
+  const far = await optimizeDocument(inputPath, farPath, 0.15, 0.008, 512);
+
+  const highReduction = high.before.triangles > 0
+    ? Math.round((1 - high.after.triangles / high.before.triangles) * 1000) / 10 : 0;
+  const farReduction = far.before.triangles > 0
+    ? Math.round((1 - far.after.triangles / far.before.triangles) * 1000) / 10 : 0;
+  const highBytesReduction = originalFiles.bytes > 0
+    ? Math.round((1 - high.bytes / originalFiles.bytes) * 1000) / 10 : 0;
+
+  vehicle.optimizedModel = path.relative(root, highPath).split(path.sep).join("/");
+  vehicle.farOptimizedModel = path.relative(root, farPath).split(path.sep).join("/");
   vehicle.optimizedFormat = "glb";
   vehicle.originalAssetBytes = originalFiles.bytes;
   vehicle.originalAssetFiles = originalFiles.files;
-  vehicle.optimizedBytes = outputStat.size;
-  vehicle.sourceTriangles = before.triangles;
-  vehicle.optimizedTriangles = after.triangles;
-  vehicle.triangleReductionPercent = triangleReduction;
-  vehicle.assetSizeReductionPercent = byteReduction;
-  vehicle.sourceVertices = before.vertices;
-  vehicle.optimizedVertices = after.vertices;
-  vehicle.optimizedPrimitives = after.primitives;
+  vehicle.optimizedBytes = high.bytes;
+  vehicle.farOptimizedBytes = far.bytes;
+  vehicle.sourceTriangles = high.before.triangles;
+  vehicle.optimizedTriangles = high.after.triangles;
+  vehicle.farOptimizedTriangles = far.after.triangles;
+  vehicle.triangleReductionPercent = highReduction;
+  vehicle.farTriangleReductionPercent = farReduction;
+  vehicle.assetSizeReductionPercent = highBytesReduction;
+  vehicle.sourceVertices = high.before.vertices;
+  vehicle.optimizedVertices = high.after.vertices;
+  vehicle.farOptimizedVertices = far.after.vertices;
+  vehicle.optimizedPrimitives = high.after.primitives;
   vehicle.textureMaxDimension = 1024;
+  vehicle.farTextureMaxDimension = 512;
 
   console.log(
     vehicle.name + ": " +
-    before.triangles.toLocaleString() + " -> " +
-    after.triangles.toLocaleString() + " triangles (" +
-    triangleReduction + "% fewer), " +
-    Math.round(originalFiles.bytes / 1048576 * 10) / 10 + " MiB -> " +
-    Math.round(outputStat.size / 1048576 * 10) / 10 + " MiB (" +
-    byteReduction + "% smaller)"
+    high.before.triangles.toLocaleString() + " source -> " +
+    high.after.triangles.toLocaleString() + " near -> " +
+    far.after.triangles.toLocaleString() + " far triangles; " +
+    highReduction + "% near reduction, " + farReduction + "% far reduction"
+  );
+  console.log(
+    "  Full source: " + Math.round(originalFiles.bytes / 1048576 * 10) / 10 +
+    " MiB; near GLB: " + Math.round(high.bytes / 1048576 * 10) / 10 +
+    " MiB; far GLB: " + Math.round(far.bytes / 1048576 * 10) / 10 + " MiB"
   );
 }
 
 await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2) + "\n", "utf8");
-console.log("\nOptimization finished. Original GLTF, BIN, textures and license files remain unchanged.");
+console.log("\nNear and far LOD models generated. Original GLTF, BIN, textures and licenses remain unchanged.");
