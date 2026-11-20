@@ -180,7 +180,14 @@
       "sourceVertices": 207955,
       "optimizedVertices": 141370,
       "optimizedPrimitives": 50,
-      "textureMaxDimension": 1024
+      "textureMaxDimension": 1024,
+      "farOptimizedModel": "assets/cars/mclaren-650s-gt3/scene-lod.glb",
+      "farOptimizedBytes": 6279780,
+      "farOptimizedTriangles": 51731,
+      "farTriangleReductionPercent": 82.8,
+      "assetSizeReductionPercent": 38.3,
+      "farOptimizedVertices": 53226,
+      "farTextureMaxDimension": 512
     },
     {
       "id": "bmw-m4-gt3-evo",
@@ -941,7 +948,14 @@
       "sourceVertices": 102743,
       "optimizedVertices": 73447,
       "optimizedPrimitives": 284,
-      "textureMaxDimension": 1024
+      "textureMaxDimension": 1024,
+      "farOptimizedModel": "assets/cars/bmw-m4-gt3-evo/scene-lod.glb",
+      "farOptimizedBytes": 3914304,
+      "farOptimizedTriangles": 32995,
+      "farTriangleReductionPercent": 69.4,
+      "assetSizeReductionPercent": 32.4,
+      "farOptimizedVertices": 43846,
+      "farTextureMaxDimension": 512
     },
     {
       "id": "lamborghini-fenomeno",
@@ -1216,7 +1230,14 @@
       "sourceVertices": 251084,
       "optimizedVertices": 168075,
       "optimizedPrimitives": 94,
-      "textureMaxDimension": 1024
+      "textureMaxDimension": 1024,
+      "farOptimizedModel": "assets/cars/lamborghini-fenomeno/scene-lod.glb",
+      "farOptimizedBytes": 5517324,
+      "farOptimizedTriangles": 62368,
+      "farTriangleReductionPercent": 82.2,
+      "assetSizeReductionPercent": 40.9,
+      "farOptimizedVertices": 62666,
+      "farTextureMaxDimension": 512
     },
     {
       "id": "bmw-m1-turbo",
@@ -1753,7 +1774,14 @@
       "sourceVertices": 363048,
       "optimizedVertices": 273108,
       "optimizedPrimitives": 100,
-      "textureMaxDimension": 1024
+      "textureMaxDimension": 1024,
+      "farOptimizedModel": "assets/cars/bmw-m1-turbo/scene-lod.glb",
+      "farOptimizedBytes": 7756852,
+      "farOptimizedTriangles": 111503,
+      "farTriangleReductionPercent": 57.3,
+      "assetSizeReductionPercent": 59.8,
+      "farOptimizedVertices": 233257,
+      "farTextureMaxDimension": 512
     },
     {
       "id": "volkswagen-golf-gti-2025",
@@ -2234,7 +2262,14 @@
       "sourceVertices": 318450,
       "optimizedVertices": 203936,
       "optimizedPrimitives": 158,
-      "textureMaxDimension": 1024
+      "textureMaxDimension": 1024,
+      "farOptimizedModel": "assets/cars/volkswagen-golf-gti-2025/scene-lod.glb",
+      "farOptimizedBytes": 8179544,
+      "farOptimizedTriangles": 69501,
+      "farTriangleReductionPercent": 81.3,
+      "assetSizeReductionPercent": 43.7,
+      "farOptimizedVertices": 88529,
+      "farTextureMaxDimension": 512
     }
   ]
 }
