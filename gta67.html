@@ -920,8 +920,6 @@
         const v = 30 + ((i * 53) % 16);
         ctx.fillStyle = `rgb(${v},${v + 2},${v + 5})`; ctx.fillRect((i * 97) % 512, (i * 193) % 512, 2, 2);
       }
-      if (!isHorizontal) { ctx.fillStyle = "#eab308"; ctx.fillRect(250, 0, 3, 512); ctx.fillRect(259, 0, 3, 512); }
-      else { ctx.fillStyle = "#eab308"; ctx.fillRect(0, 250, 512, 3); ctx.fillRect(0, 259, 512, 3); }
       const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
       tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
       const reps = Math.max(6, Math.round(lengthMeters / 28));
@@ -1136,31 +1134,282 @@
     const beachMesh = new THREE.Mesh(new THREE.PlaneGeometry(66, 520), new THREE.MeshStandardMaterial({ map: sandTileTex, roughness: 0.95 }));
     beachMesh.rotation.x = -Math.PI / 2; beachMesh.position.set(203, 0.01, 0); beachMesh.receiveShadow = true; scene.add(beachMesh);
 
-    const oceanGeo = new THREE.PlaneGeometry(2800, 2800, 80, 80);
-    const oceanOrigZ = Float32Array.from(oceanGeo.attributes.position.array);
-    const oceanMat = new THREE.MeshPhysicalMaterial({
-      color: 0x0284c7, map: waterTex, roughness: 0.14, metalness: 0.15,
-      transmission: 0.25, transparent: true, opacity: 0.88, ior: 1.333
-    });
-    const oceanMesh = new THREE.Mesh(oceanGeo, oceanMat);
-    oceanMesh.rotation.x = -Math.PI / 2; oceanMesh.position.set(0, -1.25, 0); scene.add(oceanMesh);
+    const cityPbrLoader = new THREE.TextureLoader();
+    let cityTextureManifestPromise = null;
+    const cityTextureSourceCache = new Map();
 
-    const sidewalkMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.85 });
+    function getCityTextureManifest() {
+      if (!cityTextureManifestPromise) {
+        const manifestUrl = new URL("./assets/city/textures/manifest.json", document.baseURI).href;
+        cityTextureManifestPromise = fetch(manifestUrl, { cache: "no-cache" }).then((response) => {
+          if (!response.ok) throw new Error("City texture manifest HTTP " + response.status);
+          return response.json();
+        });
+      }
+      return cityTextureManifestPromise;
+    }
+
+    function findCityTextureFile(files, kind) {
+      const patterns = {
+        color: /(?:_color|base.?color|albedo|diffuse)(?:\\.(?:jpg|jpeg|png))$/i,
+        normal: /(?:normalgl|normal[_-]?gl|normal)(?:\\.(?:jpg|jpeg|png))$/i,
+        roughness: /(?:roughness|rough)(?:\\.(?:jpg|jpeg|png))$/i,
+        height: /(?:displacement|height)(?:\\.(?:jpg|jpeg|png))$/i,
+        ao: /(?:ambientocclusion|occlusion|_ao)(?:\\.(?:jpg|jpeg|png))$/i
+      };
+      return files.find((file) => patterns[kind].test(file)) || null;
+    }
+
+    function loadCityTexture(url, colorTexture) {
+      return new Promise((resolve) => {
+        cityPbrLoader.load(url, (texture) => {
+          texture.colorSpace = colorTexture ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+          texture.wrapS = THREE.RepeatWrapping;
+          texture.wrapT = THREE.RepeatWrapping;
+          texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+          texture.generateMipmaps = true;
+          texture.minFilter = THREE.LinearMipmapLinearFilter;
+          texture.magFilter = THREE.LinearFilter;
+          resolve(texture);
+        }, undefined, () => resolve(null));
+      });
+    }
+
+    async function getCityPbrSources(textureId) {
+      if (cityTextureSourceCache.has(textureId)) return cityTextureSourceCache.get(textureId);
+
+      const pending = (async () => {
+        const manifest = await getCityTextureManifest();
+        const entry = manifest.textures?.find((item) => item.id === textureId);
+        if (!entry) return null;
+
+        const folderUrl = new URL(entry.folder, document.baseURI);
+        const files = entry.files || [];
+        const mapNames = {
+          color: findCityTextureFile(files, "color"),
+          normal: findCityTextureFile(files, "normal"),
+          roughness: findCityTextureFile(files, "roughness"),
+          height: findCityTextureFile(files, "height")
+        };
+
+        const [color, normal, roughness, height] = await Promise.all([
+          mapNames.color ? loadCityTexture(new URL(mapNames.color, folderUrl).href, true) : null,
+          mapNames.normal ? loadCityTexture(new URL(mapNames.normal, folderUrl).href, false) : null,
+          mapNames.roughness ? loadCityTexture(new URL(mapNames.roughness, folderUrl).href, false) : null,
+          mapNames.height ? loadCityTexture(new URL(mapNames.height, folderUrl).href, false) : null
+        ]);
+
+        return { color, normal, roughness, height };
+      })();
+
+      cityTextureSourceCache.set(textureId, pending);
+      try {
+        return await pending;
+      } catch (error) {
+        cityTextureSourceCache.delete(textureId);
+        throw error;
+      }
+    }
+
+    function cloneCityTexture(source, repeatX, repeatY) {
+      if (!source) return null;
+      const texture = source.clone();
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(repeatX, repeatY);
+      texture.needsUpdate = true;
+      return texture;
+    }
+
+    async function applyCityPbr(textureId, material, repeatX, repeatY, bumpScale = 0, normalStrength = 0.5) {
+      try {
+        const sources = await getCityPbrSources(textureId);
+        if (!sources) {
+          console.info("[LEONIDA] City PBR pack not uploaded yet:", textureId);
+          return false;
+        }
+
+        if (sources.color) material.map = cloneCityTexture(sources.color, repeatX, repeatY);
+        if (sources.normal) {
+          material.normalMap = cloneCityTexture(sources.normal, repeatX, repeatY);
+          if (material.normalScale) material.normalScale.set(normalStrength, normalStrength);
+        }
+        if (sources.roughness) material.roughnessMap = cloneCityTexture(sources.roughness, repeatX, repeatY);
+        if (sources.height && bumpScale > 0) {
+          material.bumpMap = cloneCityTexture(sources.height, repeatX, repeatY);
+          material.bumpScale = bumpScale;
+        }
+        material.needsUpdate = true;
+        console.info("[LEONIDA] Applied PBR material:", textureId);
+        return true;
+      } catch (error) {
+        console.warn("[LEONIDA] Could not apply PBR material:", textureId, error);
+        return false;
+      }
+    }
+
+    const oceanGeo = new THREE.PlaneGeometry(2800, 2800, 80, 80);
+    const oceanMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff, map: waterTex, roughness: 0.22, metalness: 0.025,
+      transparent: true, opacity: 0.94, ior: 1.333,
+      clearcoat: 0.62, clearcoatRoughness: 0.14,
+      normalScale: new THREE.Vector2(0.32, 0.32)
+    });
+    oceanMat.onBeforeCompile = (shader) => {
+      shader.uniforms.uWaterTime = { value: 0 };
+      shader.vertexShader = shader.vertexShader.replace(
+        "#include <common>",
+        "#include <common>\\nuniform float uWaterTime;"
+      );
+      shader.vertexShader = shader.vertexShader.replace(
+        "#include <begin_vertex>",
+        "#include <begin_vertex>\\n" +
+        "float waterWaveA = sin(position.x * 0.014 + uWaterTime * 0.72) * 0.15;\\n" +
+        "float waterWaveB = sin(position.y * 0.019 - uWaterTime * 0.51) * 0.11;\\n" +
+        "float waterWaveC = sin((position.x + position.y) * 0.009 + uWaterTime * 0.34) * 0.07;\\n" +
+        "transformed.z += waterWaveA + waterWaveB + waterWaveC;"
+      );
+      oceanMat.userData.waterShader = shader;
+    };
+    oceanMat.customProgramCacheKey = () => "leonida-ocean-waves-v1";
+
+    const oceanMesh = new THREE.Mesh(oceanGeo, oceanMat);
+    oceanMesh.rotation.x = -Math.PI / 2;
+    oceanMesh.position.set(0, -1.25, 0);
+    scene.add(oceanMesh);
+    void applyCityPbr("water-surface", oceanMat, 34, 34, 0.035, 0.48);
+
     const roadXList = [-120, -30, 60, 145], roadZList = [-140, -45, 45, 140];
-    const vRoadTex = makeCleanAsphaltTexture(490, false), hRoadTex = makeCleanAsphaltTexture(420, true);
+
+    const sidewalkMatVertical = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
+    const sidewalkMatHorizontal = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
+    const roadMatVertical = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.94 });
+    const roadMatHorizontal = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.94 });
+    const curbMat = new THREE.MeshStandardMaterial({ color: 0xa6a6a6, roughness: 0.9 });
+
+    const vRoadFallback = makeCleanAsphaltTexture(490, false);
+    const hRoadFallback = makeCleanAsphaltTexture(420, true);
+    roadMatVertical.map = vRoadFallback;
+    roadMatHorizontal.map = hRoadFallback;
 
     for (const rx of roadXList) {
-      const sw = new THREE.Mesh(new THREE.BoxGeometry(20, 0.12, 490), sidewalkMat);
-      sw.position.set(rx, 0.08, 0); sw.receiveShadow = true; scene.add(sw);
-      const rd = new THREE.Mesh(new THREE.PlaneGeometry(14, 490), new THREE.MeshStandardMaterial({ map: vRoadTex, roughness: 0.82 }));
-      rd.rotation.x = -Math.PI / 2; rd.position.set(rx, 0.15, 0); rd.receiveShadow = true; scene.add(rd);
+      const sw = new THREE.Mesh(new THREE.BoxGeometry(20, 0.12, 490), sidewalkMatVertical);
+      sw.position.set(rx, 0.08, 0);
+      sw.receiveShadow = true;
+      scene.add(sw);
+
+      const rd = new THREE.Mesh(new THREE.PlaneGeometry(14, 490), roadMatVertical);
+      rd.rotation.x = -Math.PI / 2;
+      rd.position.set(rx, 0.15, 0);
+      rd.receiveShadow = true;
+      scene.add(rd);
+
+      for (const side of [-1, 1]) {
+        const curb = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.12, 490), curbMat);
+        curb.position.set(rx + side * 7.12, 0.19, 0);
+        curb.receiveShadow = true;
+        scene.add(curb);
+      }
     }
+
     for (const rz of roadZList) {
-      const sw = new THREE.Mesh(new THREE.BoxGeometry(420, 0.12, 20), sidewalkMat);
-      sw.position.set(-5, 0.082, rz); sw.receiveShadow = true; scene.add(sw);
-      const rd = new THREE.Mesh(new THREE.PlaneGeometry(420, 14), new THREE.MeshStandardMaterial({ map: hRoadTex, roughness: 0.82 }));
-      rd.rotation.x = -Math.PI / 2; rd.position.set(-5, 0.154, rz); rd.receiveShadow = true; scene.add(rd);
+      const sw = new THREE.Mesh(new THREE.BoxGeometry(420, 0.12, 20), sidewalkMatHorizontal);
+      sw.position.set(-5, 0.082, rz);
+      sw.receiveShadow = true;
+      scene.add(sw);
+
+      const rd = new THREE.Mesh(new THREE.PlaneGeometry(420, 14), roadMatHorizontal);
+      rd.rotation.x = -Math.PI / 2;
+      rd.position.set(-5, 0.154, rz);
+      rd.receiveShadow = true;
+      scene.add(rd);
+
+      for (const side of [-1, 1]) {
+        const curb = new THREE.Mesh(new THREE.BoxGeometry(420, 0.12, 0.24), curbMat);
+        curb.position.set(-5, 0.192, rz + side * 7.12);
+        curb.receiveShadow = true;
+        scene.add(curb);
+      }
     }
+
+    void applyCityPbr("asphalt", roadMatVertical, 4, 88, 0.012, 0.5);
+    void applyCityPbr("asphalt", roadMatHorizontal, 76, 4, 0.012, 0.5);
+    void applyCityPbr("concrete", sidewalkMatVertical, 5, 122, 0.008, 0.34);
+    void applyCityPbr("concrete", sidewalkMatHorizontal, 118, 5, 0.008, 0.34);
+    void applyCityPbr("concrete", curbMat, 1.5, 40, 0.006, 0.3);
+
+    // Physical road markings: separate from the replaceable asphalt material.
+    const roadWhitePaint = new THREE.MeshStandardMaterial({
+      color: 0xe9e6dc, roughness: 0.86, metalness: 0.0
+    });
+    const roadYellowPaint = new THREE.MeshStandardMaterial({
+      color: 0xe8bd4b, roughness: 0.82, metalness: 0.0
+    });
+
+    function addRoadInstanced(geometry, material, positions) {
+      if (!positions.length) return;
+      const mesh = new THREE.InstancedMesh(geometry, material, positions.length);
+      const dummy = new THREE.Object3D();
+      for (let i = 0; i < positions.length; i++) {
+        const p = positions[i];
+        dummy.position.set(p.x, p.y, p.z);
+        dummy.rotation.set(0, p.rotationY || 0, 0);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
+      }
+      mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+      scene.add(mesh);
+    }
+
+    const verticalCenterLines = [], horizontalCenterLines = [];
+    const verticalEdgeLines = [], horizontalEdgeLines = [];
+    const verticalDashes = [], horizontalDashes = [];
+    const verticalCrosswalks = [], horizontalCrosswalks = [];
+
+    for (const rx of roadXList) {
+      for (const side of [-1, 1]) {
+        verticalCenterLines.push({ x: rx + side * 0.17, y: 0.169, z: 0 });
+        verticalEdgeLines.push({ x: rx + side * 6.72, y: 0.169, z: 0 });
+        for (let z = -236; z <= 236; z += 8.3) {
+          if (roadZList.some((rz) => Math.abs(z - rz) < 15)) continue;
+          verticalDashes.push({ x: rx + side * 3.42, y: 0.169, z });
+        }
+      }
+    }
+
+    for (const rz of roadZList) {
+      for (const side of [-1, 1]) {
+        horizontalCenterLines.push({ x: -5, y: 0.173, z: rz + side * 0.17 });
+        horizontalEdgeLines.push({ x: -5, y: 0.173, z: rz + side * 6.72 });
+        for (let x = -208; x <= 208; x += 8.3) {
+          if (roadXList.some((rx) => Math.abs(x - rx) < 15)) continue;
+          horizontalDashes.push({ x, y: 0.173, z: rz + side * 3.42 });
+        }
+      }
+    }
+
+    for (const rx of roadXList) {
+      for (const rz of roadZList) {
+        for (const side of [-1, 1]) {
+          for (let stripe = 0; stripe < 6; stripe++) {
+            const offset = side * (8.35 + stripe * 0.62);
+            verticalCrosswalks.push({ x: rx, y: 0.174, z: rz + offset });
+            horizontalCrosswalks.push({ x: rx + offset, y: 0.174, z: rz });
+          }
+        }
+      }
+    }
+
+    addRoadInstanced(new THREE.BoxGeometry(0.12, 0.022, 490), roadYellowPaint, verticalCenterLines);
+    addRoadInstanced(new THREE.BoxGeometry(420, 0.022, 0.12), roadYellowPaint, horizontalCenterLines);
+    addRoadInstanced(new THREE.BoxGeometry(0.14, 0.022, 490), roadWhitePaint, verticalEdgeLines);
+    addRoadInstanced(new THREE.BoxGeometry(420, 0.022, 0.14), roadWhitePaint, horizontalEdgeLines);
+    addRoadInstanced(new THREE.BoxGeometry(0.13, 0.022, 3.15), roadWhitePaint, verticalDashes);
+    addRoadInstanced(new THREE.BoxGeometry(3.15, 0.022, 0.13), roadWhitePaint, horizontalDashes);
+    addRoadInstanced(new THREE.BoxGeometry(13.1, 0.022, 0.34), roadWhitePaint, verticalCrosswalks);
+    addRoadInstanced(new THREE.BoxGeometry(0.34, 0.022, 13.1), roadWhitePaint, horizontalCrosswalks);
 
     // Лампы вдоль дорог (освещают дороги ночью)
     const streetLamps = [];
@@ -2915,13 +3164,15 @@
       }
       grassInstanced.instanceMatrix.needsUpdate = true;
 
-      const wPos = oceanGeo.attributes.position;
-      for (let i = 0; i < wPos.count; i++) {
-        const wx = oceanOrigZ[i * 3], wy = oceanOrigZ[i * 3 + 1];
-        wPos.setZ(i, oceanOrigZ[i * 3 + 2] + Math.sin(wx * 0.035 + elapsed * 1.6) * 0.08 + Math.cos(wy * 0.04 + elapsed * 1.2) * 0.05);
+      if (oceanMat.userData.waterShader) {
+        oceanMat.userData.waterShader.uniforms.uWaterTime.value = elapsed;
       }
-      wPos.needsUpdate = true; oceanGeo.computeVertexNormals();
-      waterTex.offset.x = (elapsed * 0.03) % 1; waterTex.offset.y = (elapsed * 0.02) % 1;
+      waterTex.offset.x = (elapsed * 0.008) % 1;
+      waterTex.offset.y = (elapsed * 0.005) % 1;
+      if (oceanMat.normalMap) {
+        oceanMat.normalMap.offset.x = (elapsed * 0.012) % 1;
+        oceanMat.normalMap.offset.y = (elapsed * 0.007) % 1;
+      }
       clubFloor.material.emissive.setHSL((elapsed * 0.35) % 1, 0.85, 0.45);
       missionMarker.rotation.y += dt * 1.5;
 
