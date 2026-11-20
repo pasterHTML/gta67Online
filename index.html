@@ -754,7 +754,8 @@
         osc.type = "sawtooth";
         osc.frequency.setValueAtTime(125 * Math.min(1.6, intensity), now); osc.frequency.exponentialRampToValueAtTime(24, now + 0.24);
         g.gain.setValueAtTime(Math.min(0.24, 0.09 * intensity), now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-        osc.connect(g); g.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.25);
+        osc.connect(g); g.connect(this.ctx.destination);
+        osc.start(now); osc.stop(now + 0.25);
       }
       shot(pitchMult = 1) {
         if (!this.ctx) return;
@@ -763,7 +764,8 @@
         osc.type = "sawtooth";
         osc.frequency.setValueAtTime(240 * pitchMult, now); osc.frequency.exponentialRampToValueAtTime(42, now + 0.11);
         g.gain.setValueAtTime(0.15, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-        osc.connect(g); g.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.12);
+        osc.connect(g); g.connect(this.ctx.destination);
+        osc.start(now); osc.stop(now + 0.12);
       }
       tirePop() { this.beep(130, 0.16, "sawtooth", 0.12); }
       update(dt, movingSpeed, inCar, carSpeed, inClub = false) {
@@ -1067,7 +1069,6 @@
       rd.rotation.x = -Math.PI / 2; rd.position.set(-5, 0.154, rz); rd.receiveShadow = true; scene.add(rd);
     }
 
-    // Оптимизированная объёмная трава через InstancedMesh (один draw call, без полос и лагов)
     const bladeGeo = new THREE.ConeGeometry(0.055, 0.42, 3);
     bladeGeo.translate(0, 0.21, 0);
     const bladeMat = new THREE.MeshStandardMaterial({ color: 0x4ea832, roughness: 0.8 });
@@ -1090,7 +1091,6 @@
       const onRoadX = roadXList.some(rx => Math.abs(gx - rx) < 11.5);
       const onRoadZ = roadZList.some(rz => Math.abs(gz - rz) < 11.5);
       if (onRoadX || onRoadZ) continue;
-      // Не ставим траву внутри зданий
       if (Math.abs(gx - 15) < 10 && Math.abs(gz - (-92)) < 9) continue;
       if (Math.abs(gx - 102) < 10 && Math.abs(gz - (-92)) < 9) continue;
       if (Math.abs(gx - 15) < 10 && Math.abs(gz - 92) < 9) continue;
@@ -1140,7 +1140,6 @@
     addRamp(145, 15, 6.5, 11, 2.2, Math.PI);
     addRamp(-30, 0, 6.5, 11, 2.2, -Math.PI / 2);
 
-    // Улучшенные пальмы и лиственные деревья в кварталах
     const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b3e1e, roughness: 0.9 });
     const palmLeafMat = new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.65, side: THREE.DoubleSide });
     const treeFoliageMat1 = new THREE.MeshStandardMaterial({ color: 0x227a2b, roughness: 0.82 });
@@ -1210,7 +1209,6 @@
       sign.position.set(cx, 4.25, cz + D / 2 + 0.08); scene.add(sign);
     }
 
-    // Ночной клуб + интерьер под картой
     buildShopExterior(15, -92, "THE LOUNGE CLUB", "БАР · ТАНЦПОЛ · СЕЙФ", "#f472b6", "#312e81");
     addCheckpointRing(15, 0.15, -83.2, 0xf472b6, 1.6);
     actionZones.push({ label: "[E] Войти в Ночной клуб", x: 15, z: -83.2, radius: 2.5, action: "enter_club", requiresCar: false, yPlane: 0.15 });
@@ -1232,7 +1230,6 @@
     addCheckpointRing(-5, interiorY + 0.2, 1.2, 0xfacc15, 1.5);
     actionZones.push({ label: "[E] Ограбить кассу клуба (+$450)", x: -5, z: 1.2, radius: 2.4, action: "rob_club", requiresCar: false, yPlane: interiorY + 0.2 });
 
-    // Оружейная + интерьер под картой
     buildShopExterior(102, -92, "AMMU-NATION", "ОРУЖИЕ · КАССА", "#f87171", "#334155");
     addCheckpointRing(102, 0.15, -83.2, 0xf87171, 1.6);
     actionZones.push({ label: "[E] Войти в Оружейную", x: 102, z: -83.2, radius: 2.5, action: "enter_gun", requiresCar: false, yPlane: 0.15 });
@@ -1253,7 +1250,6 @@
     addCheckpointRing(gunX - 1.5, interiorY + 0.2, -3.2, 0xfacc15, 1.5);
     actionZones.push({ label: "[E] Ограбить кассу оружейной (+$600)", x: gunX - 1.5, z: -3.2, radius: 2.4, action: "rob_gun", requiresCar: false, yPlane: interiorY + 0.2 });
 
-    // Бургерная + интерьер под картой
     buildShopExterior(15, 92, "BURGER SHOT", "БУРГЕРЫ · КАССА", "#fbbf24", "#b45309");
     addCheckpointRing(15, 0.15, 100.2, 0xfbbf24, 1.6);
     actionZones.push({ label: "[E] Войти в Закусочную", x: 15, z: 100.2, radius: 2.5, action: "enter_burger", requiresCar: false, yPlane: 0.15 });
@@ -1274,7 +1270,6 @@
     addCheckpointRing(burgX + 2.5, interiorY + 0.2, -5.2, 0xfacc15, 1.5);
     actionZones.push({ label: "[E] Ограбить кассу закусочной (+$350)", x: burgX + 2.5, z: -5.2, radius: 2.4, action: "rob_burger", requiresCar: false, yPlane: interiorY + 0.2 });
 
-    // Автосервис
     function buildFlatAutoShop(cx, cz) {
       const W = 22, D = 20, H = 6.2, wallT = 0.5;
       const wallMat = new THREE.MeshStandardMaterial({ map: makeShopWallTexture("#334155", "#0f172a"), roughness: 0.65 });
@@ -1296,7 +1291,6 @@
     }
     buildFlatAutoShop(102, 92);
 
-    // Дома + интерьер дома под картой
     const houseColors = ["#f8fafc", "#fde68a", "#bfdbfe", "#fecdd3", "#bbf7d0"];
     const roofColors = ["#7f1d1d", "#1e3a8a", "#065f46", "#581c87", "#78350f"];
     const houseSpots = [
@@ -1720,7 +1714,7 @@
       return { ...carObj, applyDamage, repairAndPaint, popWheel };
     }
 
-    // --- МАШИНЫ НА УЛИЦАХ (БЕЗ "БАНАЛЬНОЙ" СТАРТОВОЙ МАШИНЫ — ТОЛЬКО УГОН [F]) ---
+    // --- МАШИНЫ НА УЛИЦАХ ---
     const allCars = [];
     let activeCar = null;
     let inCar = false;
@@ -1749,7 +1743,6 @@
       scene.add(tc.group); allCars.push(tc);
     });
 
-    // Полиция (2 авто) + Танк на 5 звёзд + Вертолёт на 5 звёзд
     const policeCars = [];
     for (let i = 0; i < 2; i++) {
       const pc = createCar({ spec: carClasses[2], isPolice: true, hasNpcDriver: true });
@@ -1771,7 +1764,7 @@
     heliGroup.position.set(60, 18, -140); heliGroup.visible = false;
     scene.add(heliGroup);
 
-    // --- ПЕШЕХОДЫ С АНИМАЦИЕЙ ПАДЕНИЯ ПРИ СМЕРТИ ---
+    // --- ПЕШЕХОДЫ ---
     const pedestrians = [];
     const pedShirts = ["#38bdf8", "#a3e635", "#fbbf24", "#c084fc"];
     for (let i = 0; i < 10; i++) {
@@ -1843,7 +1836,7 @@
       });
     }
 
-    // --- ОНЛАЙН (PeerJS) + ГОЛОСОВОЙ ЧАТ [V] + ПЛАВНАЯ ИНТЕРПОЛЯЦИЯ + WATCHDOG ---
+    // --- ОНЛАЙН (PeerJS) + ГОЛОСОВОЙ ЧАТ [V] ---
     const MAX_PLAYERS = 15;
     const MAX_MY_HOSTS_PER_IP = 2;
     const VOICE_MAX_RADIUS = 38;
@@ -2589,7 +2582,6 @@
       if (e.code === "KeyM") bigMapOverlay.classList.remove("visible");
     });
 
-    // Сенсорный джойстик и кнопки для телефона
     const stickZone = document.getElementById("stickZone");
     const stickKnob = document.getElementById("stickKnob");
     let stickTouchId = null, lookTouchId = null, lastLookX = 0, lastLookY = 0;
@@ -2904,7 +2896,6 @@
       skyDome.position.copy(camera.position);
       for (const cg of clouds) { cg.position.x += cg.speedX * dt; if (cg.position.x > 580) cg.position.x = -580; }
 
-      // Лёгкое покачивание 3D-травы без пересоздания мешей
       const windStep = Math.floor(elapsed * 20) % 4;
       for (let i = windStep; i < grassBaseData.length; i += 4) {
         const gb = grassBaseData[i];
@@ -3126,7 +3117,6 @@
 
       speedNum.textContent = currentSpeedKmh;
 
-      // Плавная интерполяция удалённых игроков + отображение посадки в авто
       const interpAlpha = 1 - Math.exp(-15 * dt);
       for (const [, entry] of remotePlayers.entries()) {
         const distToTarget = entry.rig.root.position.distanceTo(entry.targetPos);
@@ -3168,7 +3158,6 @@
         }
       }
 
-      // Трафик останавливается перед пешеходами и стенами
       for (const tc of allCars) {
         if (!tc.isTraffic || (inCar && tc === activeCar)) continue;
         const fwd = new THREE.Vector3(-Math.sin(tc.yaw), 0, -Math.cos(tc.yaw));
@@ -3193,7 +3182,6 @@
         else { if (tc.routeDir === 1 && tc.group.position.x > 165) tc.group.position.x = -195; if (tc.routeDir === -1 && tc.group.position.x < -195) tc.group.position.x = 165; }
       }
 
-      // Полиция с проверкой стен (не ездят сквозь здания)
       policeCars.forEach((pc, idx) => {
         if (inCar && pc === activeCar) return;
         pc.active = wantedLevel >= (idx === 0 ? 1 : 3) && !currentInteriorName;
@@ -3217,7 +3205,6 @@
         for (const w of pc.wheels) { w.steerPivot.rotation.y = w.front ? THREE.MathUtils.clamp(normalizeAngleDiff(desiredAngle, pc.yaw) * 0.5, -0.4, 0.4) : 0; w.spinPivot.rotation.x -= chaseSpeed * dt * 2.5; }
       });
 
-      // На 5 звёздах — ТАНК (с проверкой стен) и ВЕРТОЛЁТ
       const fiveStarsActive = wantedLevel >= 5 && !currentInteriorName;
       tankCar.active = fiveStarsActive && (!inCar || activeCar !== tankCar);
       tankCar.group.visible = fiveStarsActive;
@@ -3241,7 +3228,6 @@
         rotorBlade.rotation.y += dt * 36;
       }
 
-      // Пешеходы + плавная анимация падения при поражении
       for (const ped of pedestrians) {
         if (!ped.alive) {
           if (ped.fallProgress < 1) {
