@@ -34,14 +34,16 @@ jobs:
       - name: Reduce vehicle polygons and texture memory
         run: node scripts/optimize-vehicle-models.mjs
 
-      - name: Commit optimized GLB assets and manifest
+      - name: Commit optimized near/far GLB assets and manifest
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/cars/manifest.json assets/cars/*/scene-optimized.glb
+          git add assets/cars/manifest.json assets/cars/*/scene-optimized.glb assets/cars/*/scene-lod.glb
           if git diff --cached --quiet; then
             echo "No optimized vehicle assets were produced."
             exit 1
           fi
-          git commit -m "Add optimized GLB vehicle models with geometry stats"
+          git commit -m "Add optimized near and far vehicle LOD models"
+          git fetch origin main
+          git rebase origin/main
           git push
