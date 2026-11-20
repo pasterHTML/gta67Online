@@ -32,7 +32,7 @@ const server = http.createServer((req, res) => {
     return res.end("Некорректный URL");
   }
 
-  const relativePath = pathname === "/" ? "gta67.html" : pathname.replace(/^\\/+/, "");
+  const relativePath = pathname === "/" ? "gta67.html" : pathname.slice(1);
   const filePath = path.resolve(__dirname, relativePath);
   const projectRoot = path.resolve(__dirname);
 
