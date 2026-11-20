@@ -13,14 +13,55 @@ const io = new NodeIO().registerExtensions(KHRONOS_EXTENSIONS);
 
 await MeshoptSimplifier.ready;
 
+async function directoryStats(folder, excludeOptimized = false) {
+  let bytes = 0;
+  let files = 0;
+  async function walk(current) {
+    for (const entry of await fs.readdir(current, { withFileTypes: true })) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        await walk(full);
+      } else if (entry.isFile()) {
+        if (excludeOptimized && entry.name === "scene-optimized.glb") continue;
+        const stat = await fs.stat(full);
+        bytes += stat.size;
+        files++;
+      }
+    }
+  }
+  await walk(folder);
+  return { bytes, files };
+}
+
+function geometryStats(document) {
+  let triangles = 0;
+  let vertices = 0;
+  let primitives = 0;
+  for (const mesh of document.getRoot().listMeshes()) {
+    for (const primitive of mesh.listPrimitives()) {
+      const position = primitive.getAttribute("POSITION");
+      if (!position) continue;
+      vertices += position.getCount();
+      primitives++;
+      const indices = primitive.getIndices();
+      const mode = primitive.getMode();
+      if (mode === 4) {
+        triangles += indices ? indices.getCount() / 3 : position.getCount() / 3;
+      }
+    }
+  }
+  return { triangles: Math.round(triangles), vertices, primitives };
+}
+
 for (const vehicle of manifest.vehicles) {
   const folder = path.dirname(path.join(root, vehicle.model));
   const inputPath = path.join(folder, "scene.gltf");
   const outputPath = path.join(folder, "scene-optimized.glb");
 
   console.log("\nOptimizing " + vehicle.name);
-  const inputStat = await fs.stat(inputPath);
+  const originalFiles = await directoryStats(folder, true);
   const document = await io.read(inputPath);
+  const before = geometryStats(document);
 
   await document.transform(
     dedup(),
@@ -37,19 +78,35 @@ for (const vehicle of manifest.vehicles) {
     prune()
   );
 
+  const after = geometryStats(document);
   await io.write(outputPath, document);
   const outputStat = await fs.stat(outputPath);
+  const triangleReduction = before.triangles > 0
+    ? Math.round((1 - after.triangles / before.triangles) * 1000) / 10
+    : 0;
 
   vehicle.optimizedModel = path.relative(root, outputPath).split(path.sep).join("/");
   vehicle.optimizedFormat = "glb";
-  vehicle.originalModelBytes = vehicle.modelBytes || inputStat.size;
+  vehicle.originalAssetBytes = originalFiles.bytes;
+  vehicle.originalAssetFiles = originalFiles.files;
   vehicle.optimizedBytes = outputStat.size;
+  vehicle.sourceTriangles = before.triangles;
+  vehicle.optimizedTriangles = after.triangles;
+  vehicle.triangleReductionPercent = triangleReduction;
+  vehicle.sourceVertices = before.vertices;
+  vehicle.optimizedVertices = after.vertices;
+  vehicle.optimizedPrimitives = after.primitives;
+  vehicle.textureMaxDimension = 1024;
 
   console.log(
-    vehicle.name + ": source descriptor " + inputStat.size.toLocaleString() +
-    " bytes, optimized GLB " + outputStat.size.toLocaleString() + " bytes"
+    vehicle.name + ": " +
+    before.triangles.toLocaleString() + " -> " +
+    after.triangles.toLocaleString() + " triangles (" +
+    triangleReduction + "% reduction), " +
+    Math.round(originalFiles.bytes / 1048576 * 10) / 10 + " MiB -> " +
+    Math.round(outputStat.size / 1048576 * 10) / 10 + " MiB"
   );
 }
 
 await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2) + "\n", "utf8");
-console.log("\nVehicle optimization complete. Original GLTF assets were kept unchanged.");
+console.log("\nOptimization finished. Source GLTF, BIN, textures and license files were kept unchanged.");
