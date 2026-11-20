@@ -6,6 +6,8 @@ import { dedup, prune, simplify, textureCompress, weld } from "@gltf-transform/f
 import { MeshoptSimplifier } from "meshoptimizer";
 import sharp from "sharp";
 
+const NEAR_LOD_TARGET_RATIO = 0.62;
+const FAR_LOD_TARGET_RATIO = 0.15;
 const root = process.cwd();
 const manifestPath = path.join(root, "assets/cars/manifest.json");
 const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
@@ -76,8 +78,8 @@ for (const vehicle of manifest.vehicles) {
   console.log("\nOptimizing " + vehicle.name);
   const originalFiles = await directoryStats(folder);
 
-  const high = await optimizeDocument(inputPath, highPath, 0.62, 0.0025, 1024);
-  const far = await optimizeDocument(inputPath, farPath, 0.15, 0.008, 512);
+  const high = await optimizeDocument(inputPath, highPath, NEAR_LOD_TARGET_RATIO, 0.0025, 1024);
+  const far = await optimizeDocument(inputPath, farPath, FAR_LOD_TARGET_RATIO, 0.008, 512);
 
   const highReduction = high.before.triangles > 0
     ? Math.round((1 - high.after.triangles / high.before.triangles) * 1000) / 10 : 0;
