@@ -10,7 +10,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
   const NEAR_LOD_DISTANCE = 36;
   let manifestPromise = null;
   let manifestCache = null;
-  let expectedModels = 5; // Nearby far LODs plus the first nearby detailed model
+  let expectedModels = 4; // Initial nearby far LOD models
   let loadedFiles = 0;
   let totalFiles = 0;
   let lastProgress = null;
@@ -71,7 +71,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
         const manifest = await response.json();
         if (!manifest || !Array.isArray(manifest.vehicles)) throw new Error("Файл manifest.json имеет неверный формат");
         manifestCache = manifest;
-        expectedModels = Math.min(manifest.vehicles.length, 4) + 1;
+        expectedModels = Math.min(manifest.vehicles.length, 4);
         publishProgress({ detail: "Найдено моделей: " + manifest.vehicles.length });
         return manifest;
       });
@@ -131,6 +131,8 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
 
   async function getNearTemplate(modelId) {
     if (nearTemplates.has(modelId)) return nearTemplates.get(modelId);
+    // Count the first high-detail model if one is actually needed at the spawn point.
+    if (nearStates.size === 0) expectedModels += 1;
     nearStates.set(modelId, "loading");
     publishProgress({ detail: "Загрузка детальной модели: " + modelId });
 
