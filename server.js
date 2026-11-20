@@ -5,21 +5,70 @@ const { WebSocketServer } = require("ws");
 
 const PORT = process.env.PORT || 3000;
 
+const MIME_TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".gltf": "model/gltf+json; charset=utf-8",
+  ".glb": "model/gltf-binary",
+  ".bin": "application/octet-stream",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".ktx2": "image/ktx2",
+  ".txt": "text/plain; charset=utf-8",
+  ".zip": "application/zip"
+};
+
 const server = http.createServer((req, res) => {
-  if (req.url === "/" || req.url.startsWith("/gta67.html")) {
-    const filePath = path.join(__dirname, "gta67.html");
-    fs.readFile(filePath, (err, data) => {
-      if (err) {
-        res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-        return res.end("Файл gta67.html не найден в корне репозитория");
-      }
-      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-      res.end(data);
-    });
-    return;
+  let pathname;
+  try {
+    pathname = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
+  } catch {
+    res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+    return res.end("Некорректный URL");
   }
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("OK");
+
+  const relativePath = pathname === "/" ? "gta67.html" : pathname.replace(/^\\/+/, "");
+  const filePath = path.resolve(__dirname, relativePath);
+  const projectRoot = path.resolve(__dirname);
+
+  // Never allow a URL to escape the project directory.
+  if (filePath !== projectRoot && !filePath.startsWith(projectRoot + path.sep)) {
+    res.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
+    return res.end("Доступ запрещён");
+  }
+
+  fs.stat(filePath, (statError, stat) => {
+    if (statError || !stat.isFile()) {
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      return res.end("Файл не найден: " + pathname);
+    }
+
+    const extension = path.extname(filePath).toLowerCase();
+    const contentType = MIME_TYPES[extension] || "application/octet-stream";
+    const isGameHtml = path.basename(filePath).toLowerCase() === "gta67.html";
+    const cacheControl = isGameHtml ? "no-cache" : "public, max-age=3600";
+
+    res.writeHead(200, {
+      "Content-Type": contentType,
+      "Content-Length": stat.size,
+      "Cache-Control": cacheControl,
+      "X-Content-Type-Options": "nosniff"
+    });
+
+    if (req.method === "HEAD") return res.end();
+
+    const stream = fs.createReadStream(filePath);
+    stream.on("error", () => {
+      if (!res.headersSent) res.writeHead(500);
+      res.end("Ошибка чтения файла");
+    });
+    stream.pipe(res);
+  });
 });
 
 const wss = new WebSocketServer({ server });
