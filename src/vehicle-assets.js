@@ -3,20 +3,26 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
   const loader = new GLTFLoader(manager);
   const manifestUrl = new URL("../assets/cars/manifest.json", import.meta.url);
   const projectRoot = new URL("../", import.meta.url);
-  const templates = new Map();
-  const modelStates = new Map();
+  const farTemplates = new Map();
+  const nearTemplates = new Map();
+  const farStates = new Map();
+  const nearStates = new Map();
   let manifestPromise = null;
   let manifestCache = null;
-  let expectedModels = 5;
+  let expectedModels = 6; // five far models + first nearby high-detail model
   let loadedFiles = 0;
   let totalFiles = 0;
   let lastProgress = null;
 
   function publishProgress(extra = {}) {
-    const loadedModels = [...modelStates.values()].filter((s) => s === "loaded").length;
-    const failedModels = [...modelStates.values()].filter((s) => s === "failed").length;
+    const allStates = [...farStates.values(), ...nearStates.values()];
+    const loadedModels = allStates.filter((state) => state === "loaded").length;
+    const failedModels = allStates.filter((state) => state === "failed").length;
     const completedModels = loadedModels + failedModels;
-    const currentModel = [...modelStates.entries()].find(([, state]) => state === "loading")?.[0] || null;
+    const currentModel =
+      [...farStates.entries()].find(([, state]) => state === "loading")?.[0] ||
+      [...nearStates.entries()].find(([, state]) => state === "loading")?.[0] ||
+      null;
     const fileFraction = totalFiles > 0 ? Math.min(0.85, loadedFiles / totalFiles) : 0;
     const rawPercent = ((completedModels + fileFraction) / Math.max(1, expectedModels)) * 100;
     const percent = completedModels >= expectedModels ? 100 : Math.min(98, Math.round(rawPercent));
@@ -64,53 +70,73 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
         const manifest = await response.json();
         if (!manifest || !Array.isArray(manifest.vehicles)) throw new Error("Файл manifest.json имеет неверный формат");
         manifestCache = manifest;
-        expectedModels = manifest.vehicles.length || 5;
-        publishProgress({ detail: "Найдено моделей: " + expectedModels });
+        expectedModels = manifest.vehicles.length + 1;
+        publishProgress({ detail: "Найдено моделей: " + manifest.vehicles.length });
         return manifest;
       });
     }
     return manifestPromise;
   }
 
-  async function getTemplate(modelId) {
-    if (templates.has(modelId)) return templates.get(modelId);
+  async function getVehicleEntry(modelId) {
+    const manifest = await getManifest();
+    const entry = manifest.vehicles.find((vehicle) => vehicle.id === modelId);
+    if (!entry) throw new Error("Модель автомобиля отсутствует в manifest.json: " + modelId);
+    return entry;
+  }
 
-    modelStates.set(modelId, "loading");
-    publishProgress({ detail: "Загрузка: " + modelId });
+  async function getFarTemplate(modelId) {
+    if (farTemplates.has(modelId)) return farTemplates.get(modelId);
+    farStates.set(modelId, "loading");
+    publishProgress({ detail: "Загрузка дальнего LOD: " + modelId });
 
     const pending = (async () => {
-      const manifest = await getManifest();
-      const entry = manifest.vehicles.find((vehicle) => vehicle.id === modelId);
-      if (!entry) throw new Error("Модель автомобиля отсутствует в manifest.json: " + modelId);
+      const entry = await getVehicleEntry(modelId);
+      const selectedPath = entry.farOptimizedModel || entry.optimizedModel || entry.model;
+      const modelUrl = new URL(selectedPath, projectRoot).href;
+      const gltf = await loader.loadAsync(modelUrl);
+      if (!gltf || !gltf.scene) throw new Error("GLB не содержит 3D-сцену: " + modelId);
+      return { entry, scene: gltf.scene };
+    })();
 
+    farTemplates.set(modelId, pending);
+    try {
+      const result = await pending;
+      farStates.set(modelId, "loaded");
+      publishProgress({ detail: "Готово: дальняя модель " + result.entry.name });
+      return result;
+    } catch (error) {
+      farTemplates.delete(modelId);
+      farStates.set(modelId, "failed");
+      publishProgress({ detail: "Ошибка дальнего LOD: " + modelId, warning: error?.message || String(error) });
+      throw error;
+    }
+  }
+
+  async function getNearTemplate(modelId) {
+    if (nearTemplates.has(modelId)) return nearTemplates.get(modelId);
+    nearStates.set(modelId, "loading");
+    publishProgress({ detail: "Загрузка детальной модели: " + modelId });
+
+    const pending = (async () => {
+      const entry = await getVehicleEntry(modelId);
       const selectedPath = entry.optimizedModel || entry.model;
       const modelUrl = new URL(selectedPath, projectRoot).href;
       const gltf = await loader.loadAsync(modelUrl);
-      if (!gltf || !gltf.scene) throw new Error("GLTF не содержит 3D-сцену: " + modelId);
-
-      let farScene = null;
-      if (entry.farOptimizedModel) {
-        try {
-          const farUrl = new URL(entry.farOptimizedModel, projectRoot).href;
-          const farGltf = await loader.loadAsync(farUrl);
-          farScene = farGltf?.scene || null;
-        } catch (farError) {
-          console.warn("[LEONIDA] Дальняя LOD-модель не загрузилась, оставляем основную:", modelId, farError);
-        }
-      }
-      return { entry, scene: gltf.scene, farScene };
+      if (!gltf || !gltf.scene) throw new Error("GLB не содержит 3D-сцену: " + modelId);
+      return { entry, scene: gltf.scene };
     })();
 
-    templates.set(modelId, pending);
+    nearTemplates.set(modelId, pending);
     try {
       const result = await pending;
-      modelStates.set(modelId, "loaded");
-      publishProgress({ detail: "Готово: " + result.entry.name });
+      nearStates.set(modelId, "loaded");
+      publishProgress({ detail: "Готово: детальная модель " + result.entry.name });
       return result;
     } catch (error) {
-      templates.delete(modelId);
-      modelStates.set(modelId, "failed");
-      publishProgress({ detail: "Ошибка загрузки: " + modelId, warning: error?.message || String(error) });
+      nearTemplates.delete(modelId);
+      nearStates.set(modelId, "failed");
+      publishProgress({ detail: "Ошибка детальной модели: " + modelId, warning: error?.message || String(error) });
       throw error;
     }
   }
@@ -124,8 +150,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
     let bounds = new THREE.Box3().setFromObject(fitted);
     let size = bounds.getSize(new THREE.Vector3());
 
-    // Some Sketchfab exports have their long car axis on Y instead of Z.
-    // Rotate those scenes into the game's Y-up / Z-forward coordinate system.
+    // Some exports have their long car axis on Y instead of Z.
     if (size.y > size.z * 1.25 && size.y > size.x * 1.25) {
       fitted.rotation.x = -Math.PI / 2;
       fitted.updateMatrixWorld(true);
@@ -137,7 +162,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
       throw new Error("Не удалось определить габариты модели " + modelId);
     }
 
-    // The game's forward vector is -Z. The supplied vehicle exports face +Z.
+    // The game drives toward -Z; the source vehicle exports face +Z.
     fitted.rotation.y += Math.PI;
     fitted.updateMatrixWorld(true);
     bounds = new THREE.Box3().setFromObject(fitted);
@@ -159,62 +184,73 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
       object.castShadow = false;
       object.receiveShadow = false;
       object.frustumCulled = true;
-      object.matrixAutoUpdate = true;
     });
 
     return fitted;
   }
 
   function findWheelPivots(root) {
-    const exactWheelName = /^(3dwheel\s+(front|rear)\s+[lr]|wheel1a_(lf|lr|rf|rr)(_|$)|wheel_(front|rear)\s+[lr](_|$)|wheel_(rf|lf|rr|lr)(_|$)|wheel_(fl|fr|rl|rr)(_|$)|wheels?_(front|rear)|wheel_(front|rear))/i;
-    const candidates = [];
+    const wheelName = /^(3dwheel\s+(front|rear)\s+[lr]|wheel1a_(lf|lr|rf|rr)(_|$)|wheel_(front|rear)\s+[lr](_|$)|wheel_(rf|lf|rr|lr)(_|$)|wheel_(fl|fr|rl|rr)(_|$)|wheels?_(front|rear)|wheel_(front|rear))/i;
+    const pivots = [];
     root.traverse((object) => {
       const hasChildren = Array.isArray(object.children) && object.children.length > 0;
-      if (!object.name || (!hasChildren && !object.isMesh)) return;
-      if (!exactWheelName.test(object.name.trim())) return;
-      candidates.push({
+      if (!object.name || (!hasChildren && !object.isMesh) || !wheelName.test(object.name.trim())) return;
+      pivots.push({
         object,
         front: /(front|_lf|_rf|_fl|_fr)/i.test(object.name),
         originalRotation: object.rotation.clone()
       });
     });
-    return candidates;
+    return pivots;
+  }
+
+  function loadNear(car) {
+    if (!car || car.modelRoot || car._nearLoading || !car.spec?.modelId) return;
+    car._nearLoading = true;
+
+    getNearTemplate(car.spec.modelId).then((template) => {
+      if (car.modelRoot) return;
+      const fitted = fitModel(template.scene, car.spec.modelId + "-near");
+      const pivots = findWheelPivots(fitted);
+      car.group.add(fitted);
+      car.modelRoot = fitted;
+      car.visualWheelPivots = pivots;
+      fitted.visible = true;
+      if (car.farModelRoot) car.farModelRoot.visible = false;
+    }).catch((error) => {
+      console.warn("[LEONIDA] Не удалось загрузить детальную модель", car.spec.modelId, error);
+      if (!car._nearWarningShown) {
+        car._nearWarningShown = true;
+        notify("Не загрузилась детальная модель " + car.spec.clsName + ". Оставлена облегчённая версия.", "rgba(249,115,22,.95)");
+      }
+    }).finally(() => {
+      car._nearLoading = false;
+    });
   }
 
   async function mount(car) {
     if (!car || !car.spec || !car.spec.modelId || car.isTank) return false;
-    if (car.modelRoot) return true;
+    if (car.farModelRoot || car.modelRoot) return true;
 
     try {
-      const template = await getTemplate(car.spec.modelId);
-      const fitted = fitModel(template.scene, car.spec.modelId);
-      const wheelPivots = findWheelPivots(fitted);
-      const farFitted = template.farScene
-        ? fitModel(template.farScene, car.spec.modelId + "-far")
-        : null;
-      const farWheelPivots = farFitted ? findWheelPivots(farFitted) : [];
+      const template = await getFarTemplate(car.spec.modelId);
+      const farFitted = fitModel(template.scene, car.spec.modelId + "-far");
+      const farPivots = findWheelPivots(farFitted);
 
       car.group.scale.set(1, 1, 1);
-      car.group.add(fitted);
-      if (farFitted) {
-        car.group.add(farFitted);
-        farFitted.visible = false;
-      }
-      car.modelRoot = fitted;
+      car.group.add(farFitted);
       car.farModelRoot = farFitted;
-      car.visualWheelPivots = wheelPivots;
-      car.farVisualWheelPivots = farWheelPivots;
+      car.farVisualWheelPivots = farPivots;
       car.modelId = car.spec.modelId;
       car.modelReady = true;
+      farFitted.visible = true;
 
       if (Array.isArray(car.baseVisualMeshes)) {
         car.baseVisualMeshes.forEach((mesh) => { if (mesh) mesh.visible = false; });
       }
-
-      fitted.visible = true;
       return true;
     } catch (error) {
-      console.warn("[LEONIDA] Не удалось загрузить модель", car.spec.modelId, error);
+      console.warn("[LEONIDA] Не удалось загрузить дальнюю модель", car.spec.modelId, error);
       if (!car._modelWarningShown) {
         car._modelWarningShown = true;
         notify("Не загрузилась модель " + car.spec.clsName + ". Используется резервная машина.", "rgba(239,68,68,.95)");
@@ -228,15 +264,16 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
     const nearDistanceSq = 58 * 58;
 
     for (const car of cars) {
-      if (!car || !car.modelRoot) continue;
-
+      if (!car || !car.farModelRoot) continue;
       const distanceSq = referencePosition
         ? car.group.position.distanceToSquared(referencePosition)
         : 0;
-      const useNearModel = car === activeCar || !car.farModelRoot || distanceSq <= nearDistanceSq;
+      const needsNear = car === activeCar || !referencePosition || distanceSq <= nearDistanceSq;
 
-      car.modelRoot.visible = useNearModel;
-      if (car.farModelRoot) car.farModelRoot.visible = !useNearModel;
+      if (needsNear && !car.modelRoot) loadNear(car);
+
+      if (car.modelRoot) car.modelRoot.visible = needsNear;
+      car.farModelRoot.visible = !needsNear || !car.modelRoot;
 
       if (Array.isArray(car.baseVisualMeshes)) {
         car.baseVisualMeshes.forEach((mesh) => { if (mesh) mesh.visible = false; });
