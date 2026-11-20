@@ -1151,11 +1151,11 @@
 
     function findCityTextureFile(files, kind) {
       const patterns = {
-        color: /(?:_color|base.?color|albedo|diffuse)(?:\\.(?:jpg|jpeg|png))$/i,
-        normal: /(?:normalgl|normal[_-]?gl|normal)(?:\\.(?:jpg|jpeg|png))$/i,
-        roughness: /(?:roughness|rough)(?:\\.(?:jpg|jpeg|png))$/i,
-        height: /(?:displacement|height)(?:\\.(?:jpg|jpeg|png))$/i,
-        ao: /(?:ambientocclusion|occlusion|_ao)(?:\\.(?:jpg|jpeg|png))$/i
+        color: /(?:_color|base.?color|albedo|diffuse)(?:\.(?:jpg|jpeg|png))$/i,
+        normal: /(?:normalgl|normal[_-]?gl|normal)(?:\.(?:jpg|jpeg|png))$/i,
+        roughness: /(?:roughness|rough)(?:\.(?:jpg|jpeg|png))$/i,
+        height: /(?:displacement|height)(?:\.(?:jpg|jpeg|png))$/i,
+        ao: /(?:ambientocclusion|occlusion|_ao)(?:\.(?:jpg|jpeg|png))$/i
       };
       return files.find((file) => patterns[kind].test(file)) || null;
     }
@@ -1259,14 +1259,14 @@
       shader.uniforms.uWaterTime = { value: 0 };
       shader.vertexShader = shader.vertexShader.replace(
         "#include <common>",
-        "#include <common>\\nuniform float uWaterTime;"
+        "#include <common>\nuniform float uWaterTime;"
       );
       shader.vertexShader = shader.vertexShader.replace(
         "#include <begin_vertex>",
-        "#include <begin_vertex>\\n" +
-        "float waterWaveA = sin(position.x * 0.014 + uWaterTime * 0.72) * 0.15;\\n" +
-        "float waterWaveB = sin(position.y * 0.019 - uWaterTime * 0.51) * 0.11;\\n" +
-        "float waterWaveC = sin((position.x + position.y) * 0.009 + uWaterTime * 0.34) * 0.07;\\n" +
+        "#include <begin_vertex>\n" +
+        "float waterWaveA = sin(position.x * 0.014 + uWaterTime * 0.72) * 0.15;\n" +
+        "float waterWaveB = sin(position.y * 0.019 - uWaterTime * 0.51) * 0.11;\n" +
+        "float waterWaveC = sin((position.x + position.y) * 0.009 + uWaterTime * 0.34) * 0.07;\n" +
         "transformed.z += waterWaveA + waterWaveB + waterWaveC;"
       );
       oceanMat.userData.waterShader = shader;
