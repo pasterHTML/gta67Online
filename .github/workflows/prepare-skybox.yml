@@ -1,0 +1,49 @@
+name: Prepare skybox
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/download-skybox.mjs"
+      - ".github/workflows/prepare-skybox.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prepare-skybox
+  cancel-in-progress: false
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download Poly Haven CC0 HDRI
+        run: node scripts/download-skybox.mjs
+
+      - name: Commit sky asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/sky
+          if git diff --cached --quiet; then
+            echo "The skybox is already up to date."
+            exit 0
+          fi
+          git commit -m "Add optimized Poly Haven sky HDRI"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
