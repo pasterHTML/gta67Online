@@ -2745,9 +2745,17 @@
 
     function resolveCarWallCollisions(car, radius = 2.22) {
       let collided = false;
+      const probeRadius = Math.min(1.18, radius * 0.53);
+      const forwardX = -Math.sin(car.yaw || 0);
+      const forwardZ = -Math.cos(car.yaw || 0);
+      const probeOffsets = [
+        { x: 0, z: 0 },
+        { x: forwardX * 1.34, z: forwardZ * 1.34 },
+        { x: -forwardX * 1.34, z: -forwardZ * 1.34 }
+      ];
 
-      // Resolve several boxes per frame so corners and adjacent walls do not
-      // let the car slip through after only the first contact.
+      // A three-probe capsule follows the front, center and rear of the car.
+      // Multiple passes resolve corners and adjacent wall boxes.
       for (let pass = 0; pass < 3; pass++) {
         let changed = false;
 
@@ -2755,51 +2763,52 @@
           if (b.maxY - b.minY < 0.36) continue;
           if (car.group.position.y >= b.maxY || car.group.position.y + 1.7 <= b.minY) continue;
 
-          const px = car.group.position.x;
-          const pz = car.group.position.z;
-          const cx = THREE.MathUtils.clamp(px, b.minX, b.maxX);
-          const cz = THREE.MathUtils.clamp(pz, b.minZ, b.maxZ);
-          const dx = px - cx;
-          const dz = pz - cz;
-          const distSq = dx * dx + dz * dz;
-          if (distSq >= radius * radius) continue;
+          for (const probe of probeOffsets) {
+            const px = car.group.position.x + probe.x;
+            const pz = car.group.position.z + probe.z;
+            const cx = THREE.MathUtils.clamp(px, b.minX, b.maxX);
+            const cz = THREE.MathUtils.clamp(pz, b.minZ, b.maxZ);
+            const dx = px - cx;
+            const dz = pz - cz;
+            const distSq = dx * dx + dz * dz;
+            if (distSq >= probeRadius * probeRadius) continue;
 
-          let nx = 0, nz = 0, overlap = 0;
-          if (distSq < 0.000001) {
-            // If the vehicle center is inside the box, push it out through
-            // the nearest side instead of using an unstable zero-length normal.
-            const exits = [
-              { distance: px - b.minX, x: -1, z: 0 },
-              { distance: b.maxX - px, x: 1, z: 0 },
-              { distance: pz - b.minZ, x: 0, z: -1 },
-              { distance: b.maxZ - pz, x: 0, z: 1 }
-            ].sort((a, b) => a.distance - b.distance);
-            nx = exits[0].x;
-            nz = exits[0].z;
-            overlap = radius + Math.max(0, exits[0].distance);
-          } else {
-            const dist = Math.sqrt(distSq);
-            nx = dx / dist;
-            nz = dz / dist;
-            overlap = radius - dist;
-          }
-
-          car.group.position.x += nx * overlap;
-          car.group.position.z += nz * overlap;
-
-          const vn = car.vel.x * nx + car.vel.z * nz;
-          if (vn < 0) {
-            if (Math.abs(vn) > 8 && elapsed - (car.lastWallDamageTime ?? -10) > 0.3) {
-              car.applyDamage(-vn, new THREE.Vector3(nx * 1.2, 0.5, nz * 2.0));
-              car.lastWallDamageTime = elapsed;
+            let nx = 0, nz = 0, overlap = 0;
+            if (distSq < 0.000001) {
+              const exits = [
+                { distance: px - b.minX, x: -1, z: 0 },
+                { distance: b.maxX - px, x: 1, z: 0 },
+                { distance: pz - b.minZ, x: 0, z: -1 },
+                { distance: b.maxZ - pz, x: 0, z: 1 }
+              ].sort((a, b) => a.distance - b.distance);
+              nx = exits[0].x;
+              nz = exits[0].z;
+              overlap = probeRadius + Math.max(0, exits[0].distance);
+            } else {
+              const dist = Math.sqrt(distSq);
+              nx = dx / dist;
+              nz = dz / dist;
+              overlap = probeRadius - dist;
             }
-            // Near-zero restitution: walls stop the car without a big bounce.
-            car.vel.x -= 1.02 * vn * nx;
-            car.vel.z -= 1.02 * vn * nz;
-          }
 
-          collided = true;
-          changed = true;
+            car.group.position.x += nx * overlap;
+            car.group.position.z += nz * overlap;
+
+            const vn = car.vel.x * nx + car.vel.z * nz;
+            if (vn < 0) {
+              if (Math.abs(vn) > 8 && elapsed - (car.lastWallDamageTime ?? -10) > 0.3) {
+                car.applyDamage(-vn, new THREE.Vector3(nx * 1.2, 0.5, nz * 2.0));
+                car.lastWallDamageTime = elapsed;
+              }
+              // Near-zero restitution stops the vehicle instead of bouncing it away.
+              car.vel.x -= 1.02 * vn * nx;
+              car.vel.z -= 1.02 * vn * nz;
+            }
+
+            collided = true;
+            changed = true;
+            break;
+          }
         }
 
         if (!changed) break;
@@ -3044,10 +3053,10 @@
           activeCar.angVelY = steerInput * 1.65 * speedRatio * revSign * (handbrake ? 1.25 : 1.0);
           activeCar.yaw += activeCar.angVelY * dt;
 
-          const targetRoll = THREE.MathUtils.clamp(-steerInput * speedRatio * 0.10 - lateralSpeed * 0.008, -0.15, 0.15);
-          activeCar.roll = THREE.MathUtils.lerp(activeCar.roll, targetRoll, 1 - Math.exp(-6.5 * dt));
-          const targetPitch = THREE.MathUtils.clamp((keys["KeyW"] ? -0.025 : keys["KeyS"] ? 0.035 : 0) * speedRatio, -0.075, 0.075);
-          activeCar.pitch = THREE.MathUtils.lerp(activeCar.pitch, targetPitch, 1 - Math.exp(-6.0 * dt));
+          const targetRoll = THREE.MathUtils.clamp(-steerInput * speedRatio * 0.07 - lateralSpeed * 0.006, -0.09, 0.09);
+          activeCar.roll = THREE.MathUtils.lerp(activeCar.roll, targetRoll, 1 - Math.exp(-7.5 * dt));
+          const targetPitch = THREE.MathUtils.clamp((keys["KeyW"] ? -0.018 : keys["KeyS"] ? 0.025 : 0) * speedRatio, -0.05, 0.05);
+          activeCar.pitch = THREE.MathUtils.lerp(activeCar.pitch, targetPitch, 1 - Math.exp(-7.0 * dt));
         } else {
           activeCar.roll += activeCar.angVelZ * dt; activeCar.pitch += activeCar.angVelX * dt;
           activeCar.angVelZ *= Math.pow(0.28, dt); activeCar.angVelX *= Math.pow(0.28, dt);
