@@ -8,6 +8,9 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
   const farStates = new Map();
   const nearStates = new Map();
   const NEAR_LOD_DISTANCE = 36;
+  const STREAM_DISTANCE = 78;
+  const MAX_CONCURRENT_MOUNTS = 2;
+  let activeMounts = 0;
   let manifestPromise = null;
   let manifestCache = null;
   let expectedModels = 4; // Initial nearby far LOD models
@@ -270,7 +273,10 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
     if (car.farModelRoot || car.modelRoot) return true;
     if (car._mounting) return false;
 
+    if (activeMounts >= MAX_CONCURRENT_MOUNTS) return false;
+    activeMounts += 1;
     car._mounting = true;
+    let failed = false;
     try {
       const template = await getFarTemplate(car.spec.modelId);
       if (car.farModelRoot || car.modelRoot) return true;
@@ -291,6 +297,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
       }
       return true;
     } catch (error) {
+      failed = true;
       console.warn("[LEONIDA] Не удалось загрузить дальнюю модель", car.spec.modelId, error);
       if (!car._modelWarningShown) {
         car._modelWarningShown = true;
@@ -298,10 +305,16 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
       }
       return false;
     } finally {
+      activeMounts -= 1;
       car._mounting = false;
-      car._mountAttempts = (car._mountAttempts || 0) + 1;
-      const retryDelay = Math.min(60000, 5000 * (2 ** Math.max(0, car._mountAttempts - 1)));
-      car._mountRetryAt = performance.now() + retryDelay;
+      if (failed) {
+        car._mountAttempts = (car._mountAttempts || 0) + 1;
+        const retryDelay = Math.min(60000, 5000 * (2 ** Math.max(0, car._mountAttempts - 1)));
+        car._mountRetryAt = performance.now() + retryDelay;
+      } else {
+        car._mountAttempts = 0;
+        car._mountRetryAt = 0;
+      }
     }
   }
 
@@ -319,7 +332,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
         : 0;
 
       if (!car.farModelRoot) {
-        const shouldRetry = car === activeCar || !referencePosition || distanceSq <= 110 * 110;
+        const shouldRetry = car === activeCar || !referencePosition || distanceSq <= STREAM_DISTANCE * STREAM_DISTANCE;
         if (shouldRetry && !car._mounting && now >= (car._mountRetryAt || 0)) {
           void mount(car);
         }
