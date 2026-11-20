@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "license": "CC0 1.0",
+  "textures": [
+    {
+      "id": "grass",
+      "name": "Grass 001",
+      "source": "https://ambientcg.com/view?id=Grass001",
+      "license": "CC0 1.0",
+      "folder": "assets/city/textures/grass/",
+      "files": [
+        "Grass001.png",
+        "Grass001_1K-JPG.blend",
+        "Grass001_1K-JPG.mtlx",
+        "Grass001_1K-JPG.tres",
+        "Grass001_1K-JPG.usdc",
+        "Grass001_1K-JPG_AmbientOcclusion.jpg",
+        "Grass001_1K-JPG_Color.jpg",
+        "Grass001_1K-JPG_Displacement.jpg",
+        "Grass001_1K-JPG_NormalDX.jpg",
+        "Grass001_1K-JPG_NormalGL.jpg",
+        "Grass001_1K-JPG_Roughness.jpg"
+      ]
+    },
+    {
+      "id": "asphalt",
+      "name": "Road 015 A",
+      "source": "https://ambientcg.com/view?id=Road015A",
+      "license": "CC0 1.0",
+      "folder": "assets/city/textures/asphalt/",
+      "files": [
+        "Road015A.png",
+        "Road015A_1K-JPG.blend",
+        "Road015A_1K-JPG.mtlx",
+        "Road015A_1K-JPG.tres",
+        "Road015A_1K-JPG.usdc",
+        "Road015A_1K-JPG_AmbientOcclusion.jpg",
+        "Road015A_1K-JPG_Color.jpg",
+        "Road015A_1K-JPG_Displacement.jpg",
+        "Road015A_1K-JPG_NormalDX.jpg",
+        "Road015A_1K-JPG_NormalGL.jpg",
+        "Road015A_1K-JPG_Roughness.jpg"
+      ]
+    },
+    {
+      "id": "concrete",
+      "name": "Concrete 049",
+      "source": "https://ambientcg.com/view?id=Concrete049",
+      "license": "CC0 1.0",
+      "folder": "assets/city/textures/concrete/",
+      "files": [
+        "Concrete049.png",
+        "Concrete049_1K-JPG.blend",
+        "Concrete049_1K-JPG.mtlx",
+        "Concrete049_1K-JPG.tres",
+        "Concrete049_1K-JPG.usdc",
+        "Concrete049_1K-JPG_AmbientOcclusion.jpg",
+        "Concrete049_1K-JPG_Color.jpg",
+        "Concrete049_1K-JPG_Displacement.jpg",
+        "Concrete049_1K-JPG_NormalDX.jpg",
+        "Concrete049_1K-JPG_NormalGL.jpg",
+        "Concrete049_1K-JPG_Roughness.jpg"
+      ]
+    },
+    {
+      "id": "building-plaster",
+      "name": "Plaster 001",
+      "source": "https://ambientcg.com/view?id=Plaster001",
+      "license": "CC0 1.0",
+      "folder": "assets/city/textures/building-plaster/",
+      "files": [
+        "Plaster001.png",
+        "Plaster001_1K-JPG.blend",
+        "Plaster001_1K-JPG.mtlx",
+        "Plaster001_1K-JPG.tres",
+        "Plaster001_1K-JPG.usdc",
+        "Plaster001_1K-JPG_Color.jpg",
+        "Plaster001_1K-JPG_Displacement.jpg",
+        "Plaster001_1K-JPG_NormalDX.jpg",
+        "Plaster001_1K-JPG_NormalGL.jpg",
+        "Plaster001_1K-JPG_Roughness.jpg"
+      ]
+    },
+    {
+      "id": "tree-bark",
+      "name": "Bark 001",
+      "source": "https://ambientcg.com/view?id=Bark001",
+      "license": "CC0 1.0",
+      "folder": "assets/city/textures/tree-bark/",
+      "files": [
+        "Bark001.png",
+        "Bark001_1K-JPG.blend",
+        "Bark001_1K-JPG.mtlx",
+        "Bark001_1K-JPG.tres",
+        "Bark001_1K-JPG.usdc",
+        "Bark001_1K-JPG_Color.jpg",
+        "Bark001_1K-JPG_Displacement.jpg",
+        "Bark001_1K-JPG_NormalDX.jpg",
+        "Bark001_1K-JPG_NormalGL.jpg",
+        "Bark001_1K-JPG_Roughness.jpg"
+      ]
+    },
+    {
+      "id": "tree-leaves",
+      "name": "Leaf 001",
+      "source": "https://ambientcg.com/view?id=Leaf001",
+      "license": "CC0 1.0",
+      "folder": "assets/city/textures/tree-leaves/",
+      "files": [
+        "Leaf001.png",
+        "Leaf001_1K-JPG.blend",
+        "Leaf001_1K-JPG.mtlx",
+        "Leaf001_1K-JPG.tres",
+        "Leaf001_1K-JPG.usdc",
+        "Leaf001_1K-JPG_AmbientOcclusion.jpg",
+        "Leaf001_1K-JPG_Color.jpg",
+        "Leaf001_1K-JPG_Displacement.jpg",
+        "Leaf001_1K-JPG_NormalDX.jpg",
+        "Leaf001_1K-JPG_NormalGL.jpg",
+        "Leaf001_1K-JPG_Opacity.jpg",
+        "Leaf001_1K-JPG_Roughness.jpg"
+      ]
+    },
+    {
+      "id": "beach-sand",
+      "name": "Ground 061",
+      "source": "https://ambientcg.com/view?id=Ground061",
+      "license": "CC0 1.0",
+      "folder": "assets/city/textures/beach-sand/",
+      "files": [
+        "Ground061.png",
+        "Ground061_1K-JPG.blend",
+        "Ground061_1K-JPG.mtlx",
+        "Ground061_1K-JPG.tres",
+        "Ground061_1K-JPG.usdc",
+        "Ground061_1K-JPG_AmbientOcclusion.jpg",
+        "Ground061_1K-JPG_Color.jpg",
+        "Ground061_1K-JPG_Displacement.jpg",
+        "Ground061_1K-JPG_NormalDX.jpg",
+        "Ground061_1K-JPG_NormalGL.jpg",
+        "Ground061_1K-JPG_Roughness.jpg"
+      ]
+    }
+  ]
+}
