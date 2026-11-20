@@ -19,8 +19,8 @@ export function loadNatureAssets(THREE, GLTFLoader, scene, roadXList, roadZList,
       const box = new THREE.Box3().setFromObject(o);
       const size = box.getSize(new THREE.Vector3());
       if (size.y < 0.01) return;
+      // Clone the chosen LOD and preserve the source model's complete world transform.
       const clone = o.clone(true);
-      // Preserve transforms of the Sketchfab parent hierarchy.
       const wrapper = new THREE.Group();
       o.parent.matrixWorld.decompose(wrapper.position, wrapper.quaternion, wrapper.scale);
       wrapper.add(clone);
@@ -40,12 +40,13 @@ export function loadNatureAssets(THREE, GLTFLoader, scene, roadXList, roadZList,
   function plant(url, matcher, locations, onReady) {
     loader.load(new URL(url, document.baseURI).href, gltf => {
       const choices = variants(gltf.scene, matcher);
+      console.info('[Nature] Available model variants:', choices.length, url);
       if (!choices.length) { console.warn('[Nature] No matching trees:', url); return; }
       const placed = new THREE.Group();
       locations.forEach(([x,z],i) => {
         const choice = choices[i % choices.length];
         const tree = choice.model.clone(true);
-        const target = 8 + rand()*5;
+        const target = 9 + rand()*6;
         const scale = target / choice.height;
         tree.scale.setScalar(scale);
         tree.rotation.y = rand()*Math.PI*2;
@@ -54,6 +55,7 @@ export function loadNatureAssets(THREE, GLTFLoader, scene, roadXList, roadZList,
         placed.add(tree);
       });
       scene.add(placed);
+      console.info('[Nature] Placed', placed.children.length, 'trees');
       batches.push(placed);
       onReady?.();
       console.info('[Nature] Loaded', choices.length, 'variants from', url);
@@ -69,7 +71,7 @@ export function loadNatureAssets(THREE, GLTFLoader, scene, roadXList, roadZList,
   plant('./assets/nature/oaks/scene.gltf',
     name => /^(Big|Large|Medium)_oak_tree/i.test(name) && /_LOD1$/i.test(name),
     oakSpots, () => { if (oldTrees) oldTrees.forEach(mesh => mesh.visible=false); });
-  // Palm pack is optional until its zip has been uploaded and unpacked.
+  // Palm models are provided in assets/nature/palms/.
   const palmSpots = [];
   for(let z=-215;z<=215;z+=22) {
     if(!roadZList.some(r=>Math.abs(z-r)<13)) palmSpots.push([160,z],[189,z+5]);
