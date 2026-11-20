@@ -87,7 +87,18 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
       const modelUrl = new URL(selectedPath, projectRoot).href;
       const gltf = await loader.loadAsync(modelUrl);
       if (!gltf || !gltf.scene) throw new Error("GLTF не содержит 3D-сцену: " + modelId);
-      return { entry, scene: gltf.scene };
+
+      let farScene = null;
+      if (entry.farOptimizedModel) {
+        try {
+          const farUrl = new URL(entry.farOptimizedModel, projectRoot).href;
+          const farGltf = await loader.loadAsync(farUrl);
+          farScene = farGltf?.scene || null;
+        } catch (farError) {
+          console.warn("[LEONIDA] Дальняя LOD-модель не загрузилась, оставляем основную:", modelId, farError);
+        }
+      }
+      return { entry, scene: gltf.scene, farScene };
     })();
 
     templates.set(modelId, pending);
@@ -178,11 +189,21 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
       const template = await getTemplate(car.spec.modelId);
       const fitted = fitModel(template.scene, car.spec.modelId);
       const wheelPivots = findWheelPivots(fitted);
+      const farFitted = template.farScene
+        ? fitModel(template.farScene, car.spec.modelId + "-far")
+        : null;
+      const farWheelPivots = farFitted ? findWheelPivots(farFitted) : [];
 
       car.group.scale.set(1, 1, 1);
       car.group.add(fitted);
+      if (farFitted) {
+        car.group.add(farFitted);
+        farFitted.visible = false;
+      }
       car.modelRoot = fitted;
+      car.farModelRoot = farFitted;
       car.visualWheelPivots = wheelPivots;
+      car.farVisualWheelPivots = farWheelPivots;
       car.modelId = car.spec.modelId;
       car.modelReady = true;
 
@@ -202,25 +223,41 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
     }
   }
 
-  function update(cars) {
+  function update(cars, referencePosition = null, activeCar = null) {
     if (!Array.isArray(cars)) return;
+    const nearDistanceSq = 58 * 58;
+
     for (const car of cars) {
       if (!car || !car.modelRoot) continue;
-      if (!car.modelRoot.visible) car.modelRoot.visible = true;
+
+      const distanceSq = referencePosition
+        ? car.group.position.distanceToSquared(referencePosition)
+        : 0;
+      const useNearModel = car === activeCar || !car.farModelRoot || distanceSq <= nearDistanceSq;
+
+      car.modelRoot.visible = useNearModel;
+      if (car.farModelRoot) car.farModelRoot.visible = !useNearModel;
+
       if (Array.isArray(car.baseVisualMeshes)) {
         car.baseVisualMeshes.forEach((mesh) => { if (mesh) mesh.visible = false; });
       }
     }
   }
 
-  function spinWheels(car, distanceTravelled, steerAngle = 0) {
-    if (!car || !Array.isArray(car.visualWheelPivots) || !car.visualWheelPivots.length) return;
+  function spinWheelSet(wheels, distanceTravelled, steerAngle) {
+    if (!Array.isArray(wheels) || !wheels.length) return;
     const spin = distanceTravelled * 2.8;
-    for (const wheel of car.visualWheelPivots) {
+    for (const wheel of wheels) {
       if (!wheel.object || !wheel.object.parent) continue;
       wheel.object.rotation.x = wheel.originalRotation.x - spin;
       if (wheel.front) wheel.object.rotation.y = wheel.originalRotation.y + steerAngle;
     }
+  }
+
+  function spinWheels(car, distanceTravelled, steerAngle = 0) {
+    if (!car) return;
+    spinWheelSet(car.visualWheelPivots, distanceTravelled, steerAngle);
+    spinWheelSet(car.farVisualWheelPivots, distanceTravelled, steerAngle);
   }
 
   return {
