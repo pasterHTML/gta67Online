@@ -5,8 +5,11 @@ on:
   push:
     branches: [main]
     paths:
-      - "*.zip"
-      - ".github/workflows/prepare-vehicle-assets.yml"
+      - "2015_mclaren_650s_gt3.zip"
+      - "2025_bmw_m4_gt3_evo_g82.zip"
+      - "2026_lamborghini_fenomeno.zip"
+      - "bmw_m1_turbo.zip"
+      - "volkswagen_golf_gti_2025.zip"
 
 permissions:
   contents: write
@@ -143,7 +146,13 @@ jobs:
           print(f"Total uncompressed archive payload: {total_bytes / (1024 * 1024):.1f} MiB")
           PY
 
-      - name: Commit prepared assets
+      - name: Install vehicle optimization tools
+        run: npm install --no-save --no-audit --no-fund @gltf-transform/core@4.5.1 @gltf-transform/extensions@4.5.1 @gltf-transform/functions@4.5.1 meshoptimizer sharp
+
+      - name: Generate optimized near and far vehicle models
+        run: node scripts/optimize-vehicle-models.mjs
+
+      - name: Commit prepared and optimized assets
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
