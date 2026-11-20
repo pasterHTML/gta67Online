@@ -31,17 +31,18 @@ jobs:
         shell: bash
         run: |
           python3 <<'PY'
-          import pathlib, re
+          import pathlib
 
           html = pathlib.Path("gta67.html").read_text(encoding="utf-8")
-          modules = re.findall(
-              r'<script\\b[^>]*type=["\\']module["\\'][^>]*>([\\s\\S]*?)</script>',
-              html,
-              flags=re.IGNORECASE
-          )
-          if len(modules) != 1:
-              raise SystemExit(f"Expected one module script in gta67.html, found {len(modules)}")
-          pathlib.Path("/tmp/gta67-game.mjs").write_text(modules[0], encoding="utf-8")
+          opening_tag = '<script type="module">'
+          start = html.find(opening_tag)
+          if start < 0:
+              raise SystemExit("The module script was not found in gta67.html")
+          body_start = start + len(opening_tag)
+          end = html.find("</script>", body_start)
+          if end < 0:
+              raise SystemExit("The closing module script tag was not found")
+          pathlib.Path("/tmp/gta67-game.mjs").write_text(html[body_start:end], encoding="utf-8")
           pathlib.Path("/tmp/vehicle-assets.mjs").write_text(
               pathlib.Path("src/vehicle-assets.js").read_text(encoding="utf-8"),
               encoding="utf-8"
