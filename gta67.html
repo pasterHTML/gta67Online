@@ -541,13 +541,16 @@
   <script type="importmap">
     {
       "imports": {
-        "three": "https://unpkg.com/three@0.169.0/build/three.module.js"
+        "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
       }
     }
   </script>
 
   <script type="module">
     import * as THREE from "three";
+    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+    import { createVehicleAssetManager } from "./src/vehicle-assets.js";
 
     const isTouchCapable = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
     if (isTouchCapable) document.body.classList.add("touch-device");
@@ -560,6 +563,8 @@
       clearTimeout(el._t);
       el._t = setTimeout(() => { el.style.display = "none"; }, 2800);
     }
+
+    const vehicleAssets = createVehicleAssetManager(THREE, GLTFLoader, showToast);
 
     function closeAllModals() {
       document.getElementById("serversModal").classList.remove("open");
@@ -1632,20 +1637,23 @@
     scene.add(player.root);
 
     // --- МАШИНЫ ---
+    // Five imported GLTF cars. The first parked car is always the McLaren;
+    // the other four are chosen deterministically so every client sees the same traffic.
     const carClasses = [
-      { clsName: "Седан (Частый)", maxSpeed: 28, accel: 22, color: 0x38bdf8, scaleX: 1.0, scaleY: 1.0, scaleZ: 1.0 },
-      { clsName: "Внедорожник (Обычный)", maxSpeed: 31, accel: 24, color: 0x10b981, scaleX: 1.06, scaleY: 1.14, scaleZ: 1.04 },
-      { clsName: "Маслкар (Редкий)", maxSpeed: 38, accel: 31, color: 0xf59e0b, scaleX: 1.02, scaleY: 0.96, scaleZ: 1.05 },
-      { clsName: "Суперкар (Очень редкий)", maxSpeed: 47, accel: 39, color: 0xef4444, scaleX: 1.0, scaleY: 0.88, scaleZ: 1.06 },
-      { clsName: "Гиперкар (Ультра-редкий)", maxSpeed: 56, accel: 46, color: 0xa855f7, scaleX: 1.02, scaleY: 0.84, scaleZ: 1.1 }
+      { modelId: "mclaren-650s-gt3", clsName: "McLaren 650S GT3", maxSpeed: 47, accel: 39, color: 0x0ea5e9, scaleX: 1, scaleY: 1, scaleZ: 1 },
+      { modelId: "bmw-m4-gt3-evo", clsName: "BMW M4 GT3 EVO", maxSpeed: 48, accel: 40, color: 0x16a34a, scaleX: 1, scaleY: 1, scaleZ: 1 },
+      { modelId: "lamborghini-fenomeno", clsName: "Lamborghini Fenomeno", maxSpeed: 56, accel: 46, color: 0xf59e0b, scaleX: 1, scaleY: 1, scaleZ: 1 },
+      { modelId: "bmw-m1-turbo", clsName: "BMW M1 Turbo", maxSpeed: 41, accel: 34, color: 0xe11d48, scaleX: 1, scaleY: 1, scaleZ: 1 },
+      { modelId: "volkswagen-golf-gti-2025", clsName: "Volkswagen Golf GTI 2025", maxSpeed: 34, accel: 27, color: 0x7c3aed, scaleX: 1, scaleY: 1, scaleZ: 1 }
     ];
 
-    function pickCarClassByRarity() {
-      const r = Math.random();
-      if (r < 0.36) return carClasses[0];
-      if (r < 0.64) return carClasses[1];
-      if (r < 0.84) return carClasses[2];
-      if (r < 0.95) return carClasses[3];
+    function pickCarClassByRarity(seed = null) {
+      const r = seed === null
+        ? Math.random()
+        : Math.abs(Math.sin((seed + 1) * 127.1) * 43758.5453) % 1;
+      if (r < 0.30) return carClasses[1];
+      if (r < 0.52) return carClasses[2];
+      if (r < 0.77) return carClasses[3];
       return carClasses[4];
     }
 
@@ -1750,6 +1758,8 @@
         id: "car_" + (nextCarId++),
         spec, turretPivot,
         group, wheels, driverSeatSlot, npcDriver,
+        baseVisualMeshes: [chassis, hood, trunk, roof, windshield, rearGlass, ...wheels.map((wheel) => wheel.wheelMesh)],
+        modelRoot: null, visualWheelPivots: [], modelReady: false,
         ownerClientId: null,
         vel: new THREE.Vector3(), yaw: 0, pitch: 0, roll: 0,
         angVelX: 0, angVelY: 0, angVelZ: 0, steerAngle: 0,
@@ -1811,8 +1821,8 @@
       { x: -26.8, z: 60, axis: "Z", dir: 1, spd: 14, parked: false }
     ];
 
-    parkedAndTrafficSetup.forEach((cfg) => {
-      const chosenSpec = pickCarClassByRarity();
+    parkedAndTrafficSetup.forEach((cfg, index) => {
+      const chosenSpec = index === 0 ? carClasses[0] : pickCarClassByRarity(index);
       const tc = createCar({ spec: chosenSpec, hasNpcDriver: !cfg.parked });
       tc.group.position.set(cfg.x, 0.15, cfg.z);
       tc.routeAxis = cfg.axis; tc.routeDir = cfg.dir;
@@ -1821,6 +1831,7 @@
       tc.baseSpeed = cfg.spd;
       tc.isTraffic = !cfg.parked;
       scene.add(tc.group); allCars.push(tc);
+      vehicleAssets.mount(tc);
     });
 
     const policeCars = [];
@@ -2538,7 +2549,7 @@
         player.updateAnim(0.016, 0, true, false, false);
         velY = 0; grounded = true;
         carModelText.textContent = `Твоё авто: ${activeCar.spec.clsName}`;
-        sendWsMessage({ type: "car_sync", carId: activeCar.id, x: activeCar.group.position.x, y: activeCar.group.position.y, z: activeCar.group.position.z, yaw: activeCar.yaw, occupied: false });
+        sendWsMessage({ type: "car_sync", carId: activeCar.id, modelId: activeCar.spec.modelId, x: activeCar.group.position.x, y: activeCar.group.position.y, z: activeCar.group.position.z, yaw: activeCar.yaw, occupied: false });
         renderPlayerBoard();
       } else if (nearestCar) {
         activeCar = nearestCar;
@@ -2569,7 +2580,7 @@
         player.updateAnim(0.016, 0, true, false, true);
         activeCar.driverSeatSlot.add(player.root);
         carModelText.textContent = `${activeCar.spec.clsName}`;
-        sendWsMessage({ type: "car_sync", carId: activeCar.id, x: activeCar.group.position.x, y: activeCar.group.position.y, z: activeCar.group.position.z, yaw: activeCar.yaw, occupied: true });
+        sendWsMessage({ type: "car_sync", carId: activeCar.id, modelId: activeCar.spec.modelId, x: activeCar.group.position.x, y: activeCar.group.position.y, z: activeCar.group.position.z, yaw: activeCar.yaw, occupied: true });
         renderPlayerBoard();
       }
     }
@@ -2798,6 +2809,7 @@
       const right = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
       let currentSpeedKmh = 0;
       const playerRefPos = (inCar && activeCar) ? activeCar.group.position : player.root.position;
+      vehicleAssets.update(allCars, playerRefPos, activeCar);
 
       if (currentInteriorName) { floorText.textContent = currentInteriorName; missionMarker.visible = false; }
       else if (playerRefPos.x > 170) { floorText.textContent = "Пляж Ocean Beach"; missionMarker.visible = true; }
@@ -2951,6 +2963,7 @@
         activeCar.group.rotation.order = "YXZ";
         activeCar.group.rotation.y = activeCar.yaw; activeCar.group.rotation.x = activeCar.pitch; activeCar.group.rotation.z = activeCar.roll;
         for (const w of activeCar.wheels) { w.steerPivot.rotation.y = w.front ? activeCar.steerAngle : 0; w.spinPivot.rotation.x -= forwardSpeed * dt * 2.5; }
+        vehicleAssets.spinWheels(activeCar, forwardSpeed * dt, activeCar.steerAngle);
 
         currentSpeedKmh = Math.round(horizSpeed * 3.8);
         carHpText.textContent = `${activeCar.hp}%`;
@@ -3024,6 +3037,7 @@
             tc.group.rotation.y = tc.yaw;
           }
           for (const w of tc.wheels) { w.steerPivot.rotation.y = 0; w.spinPivot.rotation.x -= tc.baseSpeed * dt * 2.5; }
+          vehicleAssets.spinWheels(tc, tc.baseSpeed * dt, 0);
         }
         if (tc.routeAxis === "Z") { if (tc.routeDir === -1 && tc.group.position.z < -225) tc.group.position.z = 225; if (tc.routeDir === 1 && tc.group.position.z > 225) tc.group.position.z = -225; }
         else { if (tc.routeDir === 1 && tc.group.position.x > 165) tc.group.position.x = -195; if (tc.routeDir === -1 && tc.group.position.x < -195) tc.group.position.x = 165; }
