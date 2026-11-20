@@ -62,12 +62,11 @@ jobs:
           if len(manifest.get("vehicles", [])) != 5:
               raise SystemExit("Expected exactly five vehicle models")
           for vehicle in manifest["vehicles"]:
-              optimized = vehicle.get("optimizedModel")
-              if not optimized:
-                  raise SystemExit("Missing optimized GLB path for " + vehicle.get("name", "vehicle"))
-              if not pathlib.Path(optimized).is_file():
-                  raise SystemExit("Optimized GLB file not found: " + optimized)
-          print("Five optimized GLB models are present.")
+              for field in ("optimizedModel", "farOptimizedModel"):
+                  model_path = vehicle.get(field)
+                  if not model_path or not pathlib.Path(model_path).is_file():
+                      raise SystemExit("Missing " + field + " for " + vehicle.get("name", "vehicle"))
+          print("Five near and five far GLB vehicle models are present.")
           PY
 
       - name: Install server dependency
@@ -91,8 +90,10 @@ jobs:
           test -s /tmp/gta67.html
           curl -fsS http://127.0.0.1:3000/src/vehicle-assets.js -o /tmp/vehicle-assets.js
           curl -fsS http://127.0.0.1:3000/assets/cars/manifest.json -o /tmp/vehicle-manifest.json
-          curl -fsS http://127.0.0.1:3000/assets/cars/mclaren-650s-gt3/scene-optimized.glb -o /tmp/mclaren.glb
+          curl -fsS http://127.0.0.1:3000/assets/cars/mclaren-650s-gt3/scene-optimized.glb -o /tmp/mclaren-near.glb
+          curl -fsS http://127.0.0.1:3000/assets/cars/mclaren-650s-gt3/scene-lod.glb -o /tmp/mclaren-far.glb
           test -s /tmp/vehicle-assets.js
           test -s /tmp/vehicle-manifest.json
-          test -s /tmp/mclaren.glb
-          echo "Game HTML, module, manifest and optimized GLB routes are available."
+          test -s /tmp/mclaren-near.glb
+          test -s /tmp/mclaren-far.glb
+          echo "Game HTML, module, manifest, near GLB and far LOD GLB routes are available."
