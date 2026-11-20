@@ -31,19 +31,35 @@ jobs:
       - name: Install glTF optimization tools
         run: npm install --no-save --no-audit --no-fund @gltf-transform/core@4.5.1 @gltf-transform/extensions@4.5.1 @gltf-transform/functions@4.5.1 meshoptimizer sharp
 
-      - name: Reduce vehicle polygons and texture memory
-        run: node scripts/optimize-vehicle-models.mjs
-
-      - name: Commit optimized near/far GLB assets and manifest
+      - name: Regenerate and publish optimized near/far vehicle models
+        shell: bash
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/cars/manifest.json assets/cars/*/scene-optimized.glb assets/cars/*/scene-lod.glb
-          if git diff --cached --quiet; then
-            echo "No optimized vehicle assets were produced."
-            exit 1
-          fi
-          git commit -m "Add optimized near and far vehicle LOD models"
-          git fetch origin main
-          git rebase origin/main
-          git push
+
+          for attempt in 1 2 3 4; do
+            echo "Optimization publish attempt $attempt"
+            git fetch origin main
+            git reset --hard origin/main
+
+            node scripts/optimize-vehicle-models.mjs
+            git add assets/cars/manifest.json assets/cars/*/scene-optimized.glb assets/cars/*/scene-lod.glb
+
+            if git diff --cached --quiet; then
+              echo "Optimized model assets are already up to date."
+              exit 0
+            fi
+
+            git commit -m "Add optimized near and far vehicle LOD models"
+            if git push origin HEAD:main; then
+              echo "Optimized vehicle assets published."
+              exit 0
+            fi
+
+            echo "A concurrent update reached main. Retrying from the latest main."
+            sleep 2
+          done
+
+          echo "Could not publish optimized vehicle assets after retries."
+          exit 1
