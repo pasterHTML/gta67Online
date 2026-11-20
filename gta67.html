@@ -614,7 +614,8 @@
         <span id="assetLoadingPercent">0%</span>
       </div>
       <div id="assetLoadingStatus">Подготовка ресурсов…</div>
-      <div class="asset-loading-note">Не закрывай вкладку, пока загрузка не закончится</div>
+      <div class="asset-loading-note">Детальные модели машин могут догружаться уже в городе.</div>
+      <button type="button" id="assetLoadingSkip" style="margin-top:14px;padding:10px 18px;border-radius:10px;border:1px solid #9ca3af;background:#1f2937;color:#f9fafb;cursor:pointer;">Войти в игру сейчас</button>
     </div>
   </div>
 
@@ -823,9 +824,19 @@
       el._t = setTimeout(() => { el.style.display = "none"; }, 2800);
     }
 
+    function dismissAssetLoading() {
+      const screen = document.getElementById("assetLoadingScreen");
+      if (!screen || screen.dataset.finished) return;
+      screen.dataset.finished = "true";
+      screen.classList.add("hidden");
+    }
+    document.getElementById("assetLoadingSkip")?.addEventListener("click", dismissAssetLoading);
+    // Car LODs are streamed on demand, so optional models must not block entering the game.
+    window.setTimeout(dismissAssetLoading, 14000);
+
     function setAssetLoadingProgress(progress) {
       const screen = document.getElementById("assetLoadingScreen");
-      if (!screen) return;
+      if (!screen || screen.dataset.finished) return;
       const bar = document.getElementById("assetLoadingBar");
       const percentEl = document.getElementById("assetLoadingPercent");
       const countEl = document.getElementById("assetLoadingCount");
