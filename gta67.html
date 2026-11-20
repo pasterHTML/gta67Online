@@ -2886,6 +2886,11 @@
       if (fireCooldown > 0) fireCooldown -= dt; if (robCooldown > 0) robCooldown -= dt;
 
       updateDayNightCycle();
+      vehicleAssets.update(
+        allCars,
+        (inCar && activeCar) ? activeCar.group.position : player.root.position,
+        activeCar
+      );
 
       skyDome.position.copy(camera.position);
       for (const cg of clouds) { cg.position.x += cg.speedX * dt; if (cg.position.x > 580) cg.position.x = -580; }
@@ -2943,7 +2948,6 @@
       const right = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
       let currentSpeedKmh = 0;
       const playerRefPos = (inCar && activeCar) ? activeCar.group.position : player.root.position;
-      vehicleAssets.update(allCars, playerRefPos, activeCar);
 
       if (currentInteriorName) { floorText.textContent = currentInteriorName; missionMarker.visible = false; }
       else if (playerRefPos.x > 170) { floorText.textContent = "Пляж Ocean Beach"; missionMarker.visible = true; }
