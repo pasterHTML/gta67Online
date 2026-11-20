@@ -43,5 +43,5 @@ jobs:
             echo "No optimized vehicle assets were produced."
             exit 1
           fi
-          git commit -m "Add optimized GLB vehicle models"
+          git commit -m "Add optimized GLB vehicle models with geometry stats"
           git push
