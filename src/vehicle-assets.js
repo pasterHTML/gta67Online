@@ -7,7 +7,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
   const nearTemplates = new Map();
   const farStates = new Map();
   const nearStates = new Map();
-  const NEAR_LOD_DISTANCE = 58;
+  const NEAR_LOD_DISTANCE = 36;
   let manifestPromise = null;
   let manifestCache = null;
   let expectedModels = 6; // five far models + first nearby high-detail model
@@ -221,11 +221,14 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
   }
 
   function findWheelPivots(root) {
-    const wheelName = /^(3dwheel\s+(front|rear)\s+[lr]|wheel1a_(lf|lr|rf|rr)(_|$)|wheel_(front|rear)\s+[lr](_|$)|wheel_(rf|lf|rr|lr)(_|$)|wheel_(fl|fr|rl|rr)(_|$)|wheels?_(front|rear)|wheel_(front|rear)|wheels?_\d+$)/i;
+    const wheelName = /^(?:3dwheel\s+(?:front|rear)\s+[lr]|wheel1a_(?:lf|lr|rf|rr)|wheel_(?:front|rear)\s+[lr]|wheel_(?:rf|lf|rr|lr)|wheel_(?:fl|fr|rl|rr)|jerez_19_(?:fl|fr|rl|rr))(?:_.*)?$/i;
     const pivots = [];
     root.traverse((object) => {
       const hasChildren = Array.isArray(object.children) && object.children.length > 0;
-      if (!object.name || (!hasChildren && !object.isMesh) || !wheelName.test(object.name.trim())) return;
+      const name = (object.name || "").trim();
+      if (!name || (!hasChildren && !object.isMesh) || !wheelName.test(name)) return;
+      // Never rotate a shared wheel container: it moves the whole wheel set around the car.
+      if (/^wheels?_\d+$/i.test(name)) return;
       pivots.push({
         object,
         front: /(front|_lf|_rf|_fl|_fr)/i.test(object.name),
@@ -261,7 +264,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
   }
 
   async function mount(car) {
-    if (!car || !car.spec || !car.spec.modelId || car.isTank) return false;
+    if (!car || !car.spec || !car.spec.modelId || car.isTank || !car.group.visible) return false;
     if (car.farModelRoot || car.modelRoot) return true;
     if (car._mounting) return false;
 
@@ -308,6 +311,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
 
     for (const car of cars) {
       if (!car || !car.spec || car.isTank) continue;
+      if (!car.group.visible && car !== activeCar) continue;
       const distanceSq = referencePosition
         ? car.group.position.distanceToSquared(referencePosition)
         : 0;
