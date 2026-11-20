@@ -74,8 +74,43 @@ export function loadNatureAssets(THREE, GLTFLoader, scene, roadXList, roadZList,
   for(let z=-215;z<=215;z+=22) {
     if(!roadZList.some(r=>Math.abs(z-r)<13)) palmSpots.push([160,z],[189,z+5]);
   }
-  plant('./assets/nature/palms/scene.gltf',
-    name => /^Bark_[1-4]$/.test(name),
-    palmSpots);
+  // The four palm variants each consist of a bark trunk and matching leaf group.
+  loader.load(new URL('./assets/nature/palms/scene.gltf', document.baseURI).href, gltf => {
+    const palms = [];
+    gltf.scene.updateMatrixWorld(true);
+    for (let i=1;i<=4;i++) {
+      const bark = gltf.scene.getObjectByName('Bark_'+i);
+      const leaf = gltf.scene.getObjectByName('Leaf_'+i);
+      if (!bark || !leaf) continue;
+      const combined = new THREE.Group();
+      for (const node of [bark,leaf]) {
+        const part = node.clone(true);
+        const parent = new THREE.Group();
+        node.parent.matrixWorld.decompose(parent.position,parent.quaternion,parent.scale);
+        parent.add(part);
+        combined.add(parent);
+      }
+      const bounds = new THREE.Box3().setFromObject(combined);
+      const height = bounds.getSize(new THREE.Vector3()).y;
+      if (height < 0.01) continue;
+      const center = bounds.getCenter(new THREE.Vector3());
+      combined.position.sub(center);
+      combined.position.y += height/2;
+      palms.push({model:combined,height});
+    }
+    const placed = new THREE.Group();
+    palmSpots.forEach(([x,z],index) => {
+      if (!palms.length) return;
+      const p=palms[index%palms.length];
+      const tree=p.model.clone(true);
+      tree.scale.setScalar((7.5+rand()*3)/p.height);
+      tree.position.set(x,0.14,z);
+      tree.rotation.y=rand()*Math.PI*2;
+      tree.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
+      placed.add(tree);
+    });
+    scene.add(placed);
+    console.info('[Nature] Loaded',palms.length,'palm variants');
+  },undefined,err=>console.info('[Nature] Palm assets not uploaded yet:',err));
   return batches;
 }
