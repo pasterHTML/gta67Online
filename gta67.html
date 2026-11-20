@@ -1078,63 +1078,85 @@
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x93c5fd, 0.0017);
     const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 1600);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
-    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0));
+    renderer.shadowMap.enabled = false;
     renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
     document.body.appendChild(renderer.domElement);
 
-    const skyMat = new THREE.ShaderMaterial({
-      side: THREE.BackSide,
+    scene.background = new THREE.Color(0x83bce8);
+    scene.backgroundIntensity = 1.0;
+
+    function makeSoftCloudTexture() {
+      const canvas = document.createElement("canvas");
+      canvas.width = 2048;
+      canvas.height = 1024;
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      function puff(x, y, rx, ry, alpha) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(rx, ry);
+        const gradient = ctx.createRadialGradient(0, 0, 0.04, 0, 0, 1);
+        gradient.addColorStop(0, "rgba(255,255,255," + alpha + ")");
+        gradient.addColorStop(0.55, "rgba(255,255,255," + (alpha * 0.72) + ")");
+        gradient.addColorStop(0.82, "rgba(255,255,255," + (alpha * 0.22) + ")");
+        gradient.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(-1, -1, 2, 2);
+        ctx.restore();
+      }
+
+      // Soft, overlapping cumulus clusters. No square sprite edges.
+      const groups = [
+        [90, 345, 190, 70], [350, 420, 220, 85], [640, 325, 240, 74],
+        [900, 430, 205, 82], [1190, 345, 250, 78], [1510, 420, 225, 86],
+        [1830, 335, 220, 74], [2040, 430, 170, 78], [-30, 430, 150, 72],
+        [270, 560, 155, 48], [750, 545, 185, 54], [1340, 555, 180, 55],
+        [1740, 555, 165, 48]
+      ];
+      for (let i = 0; i < groups.length; i++) {
+        const [cx, cy, width, height] = groups[i];
+        const alpha = 0.42 + (i % 3) * 0.06;
+        puff(cx, cy, width, height, alpha);
+        puff(cx - width * 0.34, cy + height * 0.10, width * 0.55, height * 0.75, alpha * 0.88);
+        puff(cx + width * 0.29, cy + height * 0.07, width * 0.62, height * 0.82, alpha * 0.92);
+        puff(cx - width * 0.08, cy - height * 0.42, width * 0.52, height * 0.72, alpha * 0.9);
+        puff(cx + width * 0.23, cy - height * 0.30, width * 0.42, height * 0.64, alpha * 0.82);
+      }
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.generateMipmaps = true;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+      return texture;
+    }
+
+    const cloudTexture = makeSoftCloudTexture();
+    const cloudMaterial = new THREE.MeshBasicMaterial({
+      map: cloudTexture,
+      transparent: true,
+      opacity: 0.52,
       depthWrite: false,
-      uniforms: {
-        dayTop: { value: new THREE.Color(0x1b4b87) },
-        dayMid: { value: new THREE.Color(0x5ca7d9) },
-        dayHorizon: { value: new THREE.Color(0xf0d7b0) },
-        nightTop: { value: new THREE.Color(0x07152f) },
-        nightMid: { value: new THREE.Color(0x162b48) },
-        nightHorizon: { value: new THREE.Color(0x37445d) },
-        nightFactor: { value: 0.0 },
-        sunDir: { value: new THREE.Vector3(0.55, 0.48, -0.68).normalize() },
-        uSkyTexture: { value: null },
-        uHasSkyTexture: { value: 0.0 },
-        uCloudTime: { value: 0.0 }
-      },
-      vertexShader: "varying vec3 vWorldDir; void main() { vWorldDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
-      fragmentShader: [
-        "uniform vec3 dayTop; uniform vec3 dayMid; uniform vec3 dayHorizon;",
-        "uniform vec3 nightTop; uniform vec3 nightMid; uniform vec3 nightHorizon;",
-        "uniform float nightFactor; uniform vec3 sunDir;",
-        "uniform sampler2D uSkyTexture; uniform float uHasSkyTexture; uniform float uCloudTime;",
-        "varying vec3 vWorldDir;",
-        "float hash21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }",
-        "float noise2d(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f); float a = hash21(i); float b = hash21(i + vec2(1.0, 0.0)); float c = hash21(i + vec2(0.0, 1.0)); float d = hash21(i + vec2(1.0, 1.0)); return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }",
-        "float cloudNoise(vec2 p) { float value = 0.0; float amplitude = 0.52; for (int i = 0; i < 4; i++) { value += noise2d(p) * amplitude; p = p * 2.03 + vec2(7.1, 3.7); amplitude *= 0.48; } return value; }",
-        "void main() {",
-        "  vec3 dir = normalize(vWorldDir); float h = clamp(dir.y, 0.0, 1.0);",
-        "  vec3 topColor = mix(dayTop, nightTop, nightFactor); vec3 midColor = mix(dayMid, nightMid, nightFactor); vec3 horizonColor = mix(dayHorizon, nightHorizon, nightFactor);",
-        "  vec3 gradient = mix(horizonColor, midColor, smoothstep(0.0, 0.28, h)); gradient = mix(gradient, topColor, smoothstep(0.24, 0.88, h));",
-        "  vec2 skyUv = vec2(atan(dir.z, dir.x) * 0.15915494 + 0.5, asin(clamp(dir.y, -1.0, 1.0)) * 0.31830989 + 0.5);",
-        "  vec3 hdriColor = texture2D(uSkyTexture, skyUv).rgb; hdriColor = vec3(1.0) - exp(-hdriColor * 0.82);",
-        "  vec3 baseColor = mix(gradient, hdriColor, uHasSkyTexture); baseColor *= mix(1.0, 0.46, nightFactor);",
-        "  vec2 cloudUv = vec2(skyUv.x * 4.8 + uCloudTime * 0.0018, skyUv.y * 10.5 + sin(uCloudTime * 0.00017) * 0.025);",
-        "  float broad = cloudNoise(cloudUv); float detail = cloudNoise(cloudUv * 2.8 + vec2(4.7, 9.2)); float density = broad * 0.78 + detail * 0.22;",
-        "  float cloudBand = smoothstep(0.055, 0.15, dir.y) * (1.0 - smoothstep(0.62, 0.88, dir.y));",
-        "  float cloudMask = smoothstep(0.51, 0.69, density) * cloudBand * 0.82;",
-        "  vec3 cloudColor = mix(vec3(0.59, 0.66, 0.75), vec3(1.0, 0.99, 0.96), smoothstep(0.52, 0.76, density)); cloudColor *= mix(1.0, 0.34, nightFactor);",
-        "  vec3 color = mix(baseColor, cloudColor, cloudMask);",
-        "  float sunAmt = max(dot(dir, sunDir), 0.0); color += vec3(1.0, 0.79, 0.55) * pow(sunAmt, 52.0) * 0.18 * (1.0 - nightFactor);",
-        "  gl_FragColor = vec4(color, 1.0);",
-        "}"
-      ].join("\n")
+      side: THREE.BackSide,
+      toneMapped: false
     });
+    const cloudDome = new THREE.Mesh(
+      new THREE.SphereGeometry(1120, 32, 20),
+      cloudMaterial
+    );
+    cloudDome.frustumCulled = false;
+    cloudDome.renderOrder = 1;
+    scene.add(cloudDome);
 
-    const skyDome = new THREE.Mesh(new THREE.SphereGeometry(1250, 32, 24), skyMat);
-    skyDome.frustumCulled = false;
-    scene.add(skyDome);
-
-    // A small CC0 Poly Haven HDRI is loaded once; clouds move in the sky shader.
+    // HDRI is assigned directly as the scene background. This avoids an
+    // additional full-screen shader and manual PMREM generation at startup.
     const skyRgbeLoader = new RGBELoader();
     skyRgbeLoader.setDataType(THREE.HalfFloatType);
     skyRgbeLoader.load(
@@ -1142,23 +1164,18 @@
       (skyTexture) => {
         skyTexture.mapping = THREE.EquirectangularReflectionMapping;
         skyTexture.colorSpace = THREE.LinearSRGBColorSpace;
-        skyMat.uniforms.uSkyTexture.value = skyTexture;
-        skyMat.uniforms.uHasSkyTexture.value = 1.0;
-        const pmremGenerator = new THREE.PMREMGenerator(renderer);
-        pmremGenerator.compileEquirectangularShader();
-        const environment = pmremGenerator.fromEquirectangular(skyTexture);
-        scene.environment = environment.texture;
-        pmremGenerator.dispose();
-        console.info("[LEONIDA] Loaded Poly Haven CC0 sky: Kloofendal 43d Clear");
+        scene.background = skyTexture;
+        scene.backgroundIntensity = 1.08;
+        console.info("[LEONIDA] HDRI sky loaded as the scene background.");
       },
       undefined,
-      (error) => console.warn("[LEONIDA] Sky HDRI unavailable; using procedural sky fallback.", error)
+      (error) => console.warn("[LEONIDA] HDRI unavailable; using blue sky fallback.", error)
     );
 
         const hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x334155, 1.1);
     scene.add(hemiLight);
     const sunLight = new THREE.DirectionalLight(0xfffbeb, 2.35);
-    sunLight.position.set(105, 125, -90); sunLight.castShadow = true; sunLight.shadow.mapSize.set(1024, 1024);
+    sunLight.position.set(105, 125, -90); sunLight.castShadow = false;
     const sBound = 165;
     sunLight.shadow.camera.left = -sBound; sunLight.shadow.camera.right = sBound;
     sunLight.shadow.camera.top = sBound; sunLight.shadow.camera.bottom = -sBound;
@@ -1503,51 +1520,7 @@
       streetLamps.push({ group: lg, ptLight });
     });
 
-    const bladeGeo = new THREE.ConeGeometry(0.055, 0.42, 3);
-    bladeGeo.translate(0, 0.21, 0);
-    const bladeMat = new THREE.MeshStandardMaterial({ color: 0x4ea832, roughness: 0.8 });
-    const GRASS_COUNT = 4400;
-    const grassInstanced = new THREE.InstancedMesh(bladeGeo, bladeMat, GRASS_COUNT);
-    grassInstanced.receiveShadow = false; grassInstanced.castShadow = false;
-    const grassDummy = new THREE.Object3D();
-    const grassBaseData = [];
-    const grassColor = new THREE.Color();
-    let lastGrassWindUpdate = 0;
-
-    let placedGrass = 0, seedVal = 1337;
-    function pseudoRand() {
-      seedVal = (seedVal * 16807) % 2147483647;
-      return (seedVal - 1) / 2147483646;
-    }
-
-    while (placedGrass < GRASS_COUNT) {
-      const gx = -195 + pseudoRand() * 355;
-      const gz = -210 + pseudoRand() * 420;
-      const onRoadX = roadXList.some(rx => Math.abs(gx - rx) < 11.5);
-      const onRoadZ = roadZList.some(rz => Math.abs(gz - rz) < 11.5);
-      if (onRoadX || onRoadZ) continue;
-      if (Math.abs(gx - 15) < 10 && Math.abs(gz - (-92)) < 9) continue;
-      if (Math.abs(gx - 102) < 10 && Math.abs(gz - (-92)) < 9) continue;
-      if (Math.abs(gx - 15) < 10 && Math.abs(gz - 92) < 9) continue;
-      if (Math.abs(gx - 102) < 12 && Math.abs(gz - 92) < 11) continue;
-
-      const rotY = pseudoRand() * Math.PI * 2;
-      const leanX = (pseudoRand() - 0.5) * 0.22;
-      const scaleY = 0.75 + pseudoRand() * 0.75;
-      grassDummy.position.set(gx, 0.03, gz);
-      grassDummy.rotation.set(leanX, rotY, 0);
-      grassDummy.scale.set(1, scaleY, 1);
-      grassDummy.updateMatrix();
-      grassInstanced.setMatrixAt(placedGrass, grassDummy.matrix);
-
-      grassColor.setHSL(0.26 + (pseudoRand() - 0.5) * 0.05, 0.58, 0.34 + pseudoRand() * 0.12);
-      grassInstanced.setColorAt(placedGrass, grassColor);
-      grassBaseData.push({ x: gx, z: gz, rotY, leanX, scaleY, phase: pseudoRand() * Math.PI * 2 });
-      placedGrass++;
-    }
-    grassInstanced.instanceMatrix.needsUpdate = true;
-    if (grassInstanced.instanceColor) grassInstanced.instanceColor.needsUpdate = true;
-    scene.add(grassInstanced);
+    // Grass is represented by the tiled terrain PBR material instead of thousands of animated blades.
 
     const solidBoxes = [], ramps = [], shootTargets = [], mapPOIs = [], actionZones = [];
 
@@ -1627,9 +1600,14 @@
     }
 
     function addShadeTree(x, z) {
-      storeTreeMatrix(shadeTrunkMatrices, x, 1.85, z, { x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 1 });
-      storeTreeMatrix(shadeCrown1Matrices, x, 4.25, z, { x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 1 });
-      storeTreeMatrix(shadeCrown2Matrices, x + 0.9, 5.05, z + 0.6, { x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 1 });
+      storeTreeMatrix(shadeTrunkMatrices, x, 1.85, z,
+        { x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 1 });
+      storeTreeMatrix(shadeCrown1Matrices, x, 4.12, z,
+        { x: 0.04, y: 0, z: 0.02 }, { x: 1.18, y: 0.92, z: 1.06 });
+      storeTreeMatrix(shadeCrown2Matrices, x + 0.85, 4.58, z + 0.48,
+        { x: -0.04, y: 0.3, z: 0.03 }, { x: 0.78, y: 0.84, z: 0.8 });
+      storeTreeMatrix(shadeCrown2Matrices, x - 0.82, 4.48, z - 0.5,
+        { x: 0.03, y: -0.2, z: -0.04 }, { x: 0.82, y: 0.8, z: 0.82 });
       solidBoxes.push({ minX: x - 0.45, maxX: x + 0.45, minY: 0.15, maxY: 3.2, minZ: z - 0.45, maxZ: z + 0.45 });
     }
 
@@ -1648,8 +1626,8 @@
     addTreeInstances(new THREE.CylinderGeometry(0.15, 0.34, 1, 8), trunkMat, palmTrunkMatrices, true);
     addTreeInstances(new THREE.ConeGeometry(0.68, 3.6, 5), palmLeafMat, palmFrondMatrices, false);
     addTreeInstances(new THREE.CylinderGeometry(0.22, 0.35, 3.4, 8), trunkMat, shadeTrunkMatrices, true);
-    addTreeInstances(new THREE.DodecahedronGeometry(2.2, 1), treeFoliageMat1, shadeCrown1Matrices, false);
-    addTreeInstances(new THREE.DodecahedronGeometry(1.65, 1), treeFoliageMat2, shadeCrown2Matrices, false);
+    addTreeInstances(new THREE.IcosahedronGeometry(1.85, 1), treeFoliageMat1, shadeCrown1Matrices, false);
+    addTreeInstances(new THREE.IcosahedronGeometry(1.42, 1), treeFoliageMat2, shadeCrown2Matrices, false);
 
     // --- ИНТЕРЬЕРЫ ПОД КАРТОЙ (interiorY = -75) ---
     const interiorY = -75;
@@ -2045,7 +2023,7 @@
     ];
 
     function pickCarClassByRarity(seed = null) {
-      if (seed === 2 || seed === 4) return carClasses[2];
+      if (seed === 2 || seed === 7) return carClasses[2];
       const r = seed === null
         ? Math.random()
         : Math.abs(Math.sin((seed + 1) * 127.1) * 43758.5453) % 1;
@@ -2171,12 +2149,13 @@
       });
 
       const driverSeatSlot = new THREE.Group();
-      driverSeatSlot.position.set(-0.36, 0.34, 0.02);
+      driverSeatSlot.position.set(-0.36, 0.02, -0.05);
       group.add(driverSeatSlot);
 
       let npcDriver = null;
       if (hasNpcDriver) {
         npcDriver = createCharacter({ shirtColor: (isPolice || isTank) ? "#1d4ed8" : "#0284c7", stripeColor: "#f8fafc", pantsColor: "#0f172a", hairColor: 0x3b2f2f, beard: false });
+        npcDriver.root.scale.setScalar(0.9);
         npcDriver.updateAnim(0.016, 0, true, false, true);
         driverSeatSlot.add(npcDriver.root);
       }
@@ -2259,15 +2238,13 @@
       tc.baseSpeed = cfg.spd;
       tc.isTraffic = !cfg.parked;
       scene.add(tc.group); allCars.push(tc);
-      vehicleAssets.mount(tc);
     });
 
     const policeCars = [];
     for (let i = 0; i < 2; i++) {
       const pc = createCar({ spec: carClasses[2], isPolice: true, hasNpcDriver: true });
-      pc.group.position.set(60, 0.15, 165 + i * 28); pc.active = false;
+      pc.group.position.set(60, 0.15, 165 + i * 28); pc.active = false; pc.group.visible = false;
       scene.add(pc.group); policeCars.push(pc); allCars.push(pc);
-      vehicleAssets.mount(pc);
     }
 
     const tankCar = createCar({ spec: carClasses[0], isTank: true, hasNpcDriver: true });
@@ -2286,10 +2263,19 @@
 
     // --- ПЕШЕХОДЫ ---
     const pedestrians = [];
-    const pedShirts = ["#38bdf8", "#a3e635", "#fbbf24", "#c084fc"];
+    const pedestrianLooks = [
+      { shirtColor: "#2584c7", stripeColor: "#dbeafe", pantsColor: "#1e293b", skinHex: "#d6a47c", hairColor: 0x251913, beard: false },
+      { shirtColor: "#d97706", stripeColor: "#fef3c7", pantsColor: "#334155", skinHex: "#f1c29b", hairColor: 0x6b3f22, beard: true },
+      { shirtColor: "#16a34a", stripeColor: "#dcfce7", pantsColor: "#292524", skinHex: "#8d5b43", hairColor: 0x171717, beard: false },
+      { shirtColor: "#9333ea", stripeColor: "#f3e8ff", pantsColor: "#172554", skinHex: "#efc6a1", hairColor: 0x442216, beard: false },
+      { shirtColor: "#be123c", stripeColor: "#ffe4e6", pantsColor: "#374151", skinHex: "#a96c4e", hairColor: 0x161616, beard: true },
+      { shirtColor: "#0f766e", stripeColor: "#ccfbf1", pantsColor: "#292524", skinHex: "#edc49f", hairColor: 0x75502d, beard: false },
+      { shirtColor: "#475569", stripeColor: "#e2e8f0", pantsColor: "#1f2937", skinHex: "#c48a68", hairColor: 0x2c2018, beard: true },
+      { shirtColor: "#ca8a04", stripeColor: "#fef9c3", pantsColor: "#1e3a8a", skinHex: "#f2d0ae", hairColor: 0x171717, beard: false }
+    ];
     for (let i = 0; i < 10; i++) {
       const inClub = i >= 7;
-      const ped = createCharacter({ shirtColor: pedShirts[i % pedShirts.length], stripeColor: "#ffffff", pantsColor: "#334155", hairColor: i % 2 === 0 ? 0x231712 : 0x78350f, beard: i % 2 === 0 });
+      const ped = createCharacter(pedestrianLooks[i % pedestrianLooks.length]);
       if (inClub) ped.root.position.set(1.5 + (i - 7) * 2.0, interiorY + 0.2, -2.5 + (i % 2) * 1.5);
       else ped.root.position.set(-20 + (i % 4) * 32, 0.15, -35 + Math.floor(i / 4) * 70);
       ped.homeX = ped.root.position.x; ped.homeZ = ped.root.position.z;
@@ -2970,6 +2956,7 @@
     function toggleHijackOrExitCar() {
       if (inCar && activeCar) {
         inCar = false;
+        player.root.scale.set(1, 1, 1);
         scene.add(player.root);
         const rightVec = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), activeCar.yaw);
         player.root.position.copy(activeCar.group.position).addScaledVector(rightVec, -2.3);
@@ -3006,6 +2993,7 @@
 
         player.root.position.set(0, 0, 0);
         player.root.rotation.set(0, 0, 0);
+        player.root.scale.setScalar(0.9);
         player.updateAnim(0.016, 0, true, false, true);
         activeCar.driverSeatSlot.add(player.root);
         carModelText.textContent = `${activeCar.spec.clsName}`;
@@ -3203,7 +3191,8 @@
         nightFactor = 1.0 - (phase - 0.9) / 0.1;
       }
 
-      skyMat.uniforms.nightFactor.value = nightFactor;
+      scene.backgroundIntensity = THREE.MathUtils.lerp(1.08, 0.32, nightFactor);
+      cloudMaterial.opacity = THREE.MathUtils.lerp(0.52, 0.16, nightFactor);
       const dayFog = new THREE.Color(0x93c5fd);
       const nightFog = new THREE.Color(0x091124);
       scene.fog.color.copy(dayFog).lerp(nightFog, nightFactor);
@@ -3238,22 +3227,8 @@
         activeCar
       );
 
-      skyDome.position.copy(camera.position);
-      skyMat.uniforms.uCloudTime.value = elapsed;
-
-      if (elapsed - lastGrassWindUpdate >= 0.12) {
-        lastGrassWindUpdate = elapsed;
-        const windStep = Math.floor(elapsed * 8) % 4;
-        for (let i = windStep; i < grassBaseData.length; i += 4) {
-          const gb = grassBaseData[i];
-          grassDummy.position.set(gb.x, 0.03, gb.z);
-          grassDummy.rotation.set(gb.leanX + Math.sin(elapsed * 2.1 + gb.phase) * 0.08, gb.rotY, Math.cos(elapsed * 1.7 + gb.phase) * 0.06);
-          grassDummy.scale.set(1, gb.scaleY, 1);
-          grassDummy.updateMatrix();
-          grassInstanced.setMatrixAt(i, grassDummy.matrix);
-        }
-        grassInstanced.instanceMatrix.needsUpdate = true;
-      }
+      cloudDome.position.copy(camera.position);
+      cloudDome.rotation.y = elapsed * 0.00045;
 
       if (oceanMat.userData.waterShader) {
         oceanMat.userData.waterShader.uniforms.uWaterTime.value = elapsed;
@@ -3348,6 +3323,7 @@
         if (!currentInteriorName) {
           let bestDist = 4.6;
           for (const c of allCars) {
+            if (!c.group.visible || c.isTank) continue;
             if (c.ownerClientId && c.ownerClientId !== (myClientId || "local")) continue;
             const d = player.root.position.distanceTo(c.group.position);
             if (d < bestDist) { bestDist = d; nearestCar = c; }
