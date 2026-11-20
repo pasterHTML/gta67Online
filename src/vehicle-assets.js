@@ -93,7 +93,8 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}) 
     const exactWheelName = /^(3dwheel\s+(front|rear)\s+[lr]|wheel1a_(lf|lr|rf|rr)(_|$)|wheel_(front|rear)\s+[lr](_|$)|wheel_(rf|lf|rr|lr)(_|$)|tire_(fl|fr|rl|rr)(_|$))/i;
     const candidates = [];
     root.traverse((object) => {
-      if (!object.name || !object.children || object.children.length === 0) return;
+      const hasChildren = Array.isArray(object.children) && object.children.length > 0;
+      if (!object.name || (!hasChildren && !object.isMesh)) return;
       if (!exactWheelName.test(object.name.trim())) return;
       candidates.push({
         object,
