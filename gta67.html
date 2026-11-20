@@ -360,9 +360,52 @@
       background: rgba(15, 23, 42, 0.95); padding: 8px 16px; border-radius: 999px;
       border: 1px solid rgba(255, 255, 255, 0.16); font-size: 12px;
     }
+
+    /* Загрузка моделей и текстур автомобилей */
+    #assetLoadingScreen {
+      position: fixed; inset: 0; z-index: 80;
+      display: flex; align-items: center; justify-content: center;
+      padding: 22px;
+      background: radial-gradient(ellipse at 50% 38%, rgba(16,40,67,.94), rgba(3,7,15,.99) 62%), #030712;
+      opacity: 1; visibility: visible;
+      transition: opacity .45s ease, visibility .45s ease;
+      pointer-events: auto;
+    }
+    #assetLoadingScreen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .asset-loading-card {
+      width: min(440px, 94vw); padding: 26px 26px 22px;
+      border: 1px solid rgba(125,211,252,.24); border-radius: 19px;
+      background: linear-gradient(145deg, rgba(10,24,42,.97), rgba(8,13,24,.98));
+      box-shadow: 0 28px 90px rgba(0,0,0,.64), inset 0 1px rgba(255,255,255,.06);
+      text-align: center;
+    }
+    .asset-loading-logo { color: #7dd3fc; font-size: 11px; font-weight: 900; letter-spacing: 3px; margin-bottom: 13px; }
+    .asset-loading-title { color: #f8fafc; font-size: 23px; font-weight: 900; margin-bottom: 7px; }
+    .asset-loading-sub { color: #9caec3; font-size: 12.5px; line-height: 1.55; margin-bottom: 22px; }
+    .asset-loading-track { height: 9px; width: 100%; overflow: hidden; border-radius: 99px; background: rgba(148,163,184,.15); border: 1px solid rgba(148,163,184,.12); }
+    #assetLoadingBar { width: 0%; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#0ea5e9,#7dd3fc,#fbbf24); box-shadow: 0 0 18px rgba(56,189,248,.35); transition: width .28s ease; }
+    .asset-loading-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; color: #93a4b8; font-size: 11px; }
+    #assetLoadingPercent { color: #e0f2fe; font-weight: 800; font-variant-numeric: tabular-nums; }
+    #assetLoadingStatus { min-height: 18px; margin-top: 14px; color: #cbd5e1; font-size: 11.5px; overflow-wrap: anywhere; }
+    .asset-loading-note { margin-top: 15px; color: #64748b; font-size: 10.5px; }
   </style>
 </head>
 <body>
+  <div id="assetLoadingScreen" role="status" aria-live="polite">
+    <div class="asset-loading-card">
+      <div class="asset-loading-logo">LEONIDA STUDIO</div>
+      <div class="asset-loading-title">ЗАГРУЗКА ГОРОДА</div>
+      <div class="asset-loading-sub">Загружаем 3D-модели автомобилей, материалы и текстуры. После первой загрузки браузер сможет использовать кэш.</div>
+      <div class="asset-loading-track"><div id="assetLoadingBar"></div></div>
+      <div class="asset-loading-meta">
+        <span id="assetLoadingCount">Подключение к каталогу моделей…</span>
+        <span id="assetLoadingPercent">0%</span>
+      </div>
+      <div id="assetLoadingStatus">Подготовка ресурсов…</div>
+      <div class="asset-loading-note">Не закрывай вкладку, пока загрузка не закончится</div>
+    </div>
+  </div>
+
   <div id="crosshair">
     <div class="dot"></div>
     <div class="tick t-top"></div>
@@ -564,7 +607,33 @@
       el._t = setTimeout(() => { el.style.display = "none"; }, 2800);
     }
 
-    const vehicleAssets = createVehicleAssetManager(THREE, GLTFLoader, showToast);
+    function setAssetLoadingProgress(progress) {
+      const screen = document.getElementById("assetLoadingScreen");
+      if (!screen) return;
+      const bar = document.getElementById("assetLoadingBar");
+      const percentEl = document.getElementById("assetLoadingPercent");
+      const countEl = document.getElementById("assetLoadingCount");
+      const statusEl = document.getElementById("assetLoadingStatus");
+      const pct = THREE.MathUtils.clamp(Number(progress.percent) || 0, 0, 100);
+      if (bar) bar.style.width = pct + "%";
+      if (percentEl) percentEl.textContent = Math.round(pct) + "%";
+      if (countEl) {
+        countEl.textContent = (progress.loadedModels || 0) + "/" + (progress.totalModels || 5) +
+          " моделей · " + (progress.loadedFiles || 0) + "/" + (progress.totalFiles || 0) + " файлов";
+      }
+      if (statusEl) statusEl.textContent = progress.warning || progress.detail || "Загрузка ресурсов…";
+      if (progress.done && !screen.dataset.finished) {
+        screen.dataset.finished = "true";
+        if (percentEl) percentEl.textContent = "100%";
+        if (bar) bar.style.width = "100%";
+        if (statusEl) statusEl.textContent = progress.failedModels
+          ? "Загрузка завершена. Ошибок моделей: " + progress.failedModels
+          : "Все модели и текстуры загружены";
+        window.setTimeout(() => screen.classList.add("hidden"), 550);
+      }
+    }
+
+    const vehicleAssets = createVehicleAssetManager(THREE, GLTFLoader, showToast, setAssetLoadingProgress);
 
     function closeAllModals() {
       document.getElementById("serversModal").classList.remove("open");
@@ -1712,9 +1781,30 @@
       rearGlass.position.set(0, 1.18, 0.91); rearGlass.rotation.x = 0.28; rearGlass.visible = !isTank;
       group.add(windshield, rearGlass);
 
+      let policeLightbar = null, policeRedMaterial = null, policeBlueMaterial = null;
       if (isPolice) {
-        const siren = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.18, 0.28), new THREE.MeshBasicMaterial({ color: 0x3b82f6 }));
-        siren.position.set(0, 1.58, 0.1); group.add(siren);
+        policeLightbar = new THREE.Group();
+        policeLightbar.name = "police-lightbar";
+        const barBase = new THREE.Mesh(
+          new THREE.BoxGeometry(1.02, 0.075, 0.3),
+          new THREE.MeshStandardMaterial({ color: 0x111827, metalness: 0.7, roughness: 0.28 })
+        );
+        barBase.position.y = 1.43;
+        policeLightbar.add(barBase);
+        policeRedMaterial = new THREE.MeshStandardMaterial({
+          color: 0xef4444, emissive: 0xff142d, emissiveIntensity: 0.28,
+          metalness: 0.08, roughness: 0.24
+        });
+        policeBlueMaterial = new THREE.MeshStandardMaterial({
+          color: 0x2563eb, emissive: 0x174bff, emissiveIntensity: 0.28,
+          metalness: 0.08, roughness: 0.24
+        });
+        const redLens = new THREE.Mesh(new THREE.BoxGeometry(0.43, 0.16, 0.25), policeRedMaterial);
+        const blueLens = new THREE.Mesh(new THREE.BoxGeometry(0.43, 0.16, 0.25), policeBlueMaterial);
+        redLens.position.set(-0.25, 1.54, 0);
+        blueLens.position.set(0.25, 1.54, 0);
+        policeLightbar.add(redLens, blueLens);
+        group.add(policeLightbar);
       }
 
       let turretPivot = null;
@@ -1758,6 +1848,7 @@
         id: "car_" + (nextCarId++),
         spec, turretPivot,
         group, wheels, driverSeatSlot, npcDriver,
+        policeLightbar, policeRedMaterial, policeBlueMaterial,
         baseVisualMeshes: [chassis, hood, trunk, roof, windshield, rearGlass, ...wheels.map((wheel) => wheel.wheelMesh)],
         modelRoot: null, visualWheelPivots: [], modelReady: false,
         ownerClientId: null,
@@ -1839,6 +1930,7 @@
       const pc = createCar({ spec: carClasses[2], isPolice: true, hasNpcDriver: true });
       pc.group.position.set(60, 0.15, 165 + i * 28); pc.active = false;
       scene.add(pc.group); policeCars.push(pc); allCars.push(pc);
+      vehicleAssets.mount(pc);
     }
 
     const tankCar = createCar({ spec: carClasses[0], isTank: true, hasNpcDriver: true });
@@ -2809,7 +2901,7 @@
       const right = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
       let currentSpeedKmh = 0;
       const playerRefPos = (inCar && activeCar) ? activeCar.group.position : player.root.position;
-      vehicleAssets.update(allCars, playerRefPos, activeCar);
+      vehicleAssets.update(allCars);
 
       if (currentInteriorName) { floorText.textContent = currentInteriorName; missionMarker.visible = false; }
       else if (playerRefPos.x > 170) { floorText.textContent = "Пляж Ocean Beach"; missionMarker.visible = true; }
