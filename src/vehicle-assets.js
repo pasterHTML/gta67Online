@@ -205,7 +205,8 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
   }
 
   function loadNear(car) {
-    if (!car || car.modelRoot || car._nearLoading || !car.spec?.modelId) return;
+    if (!car || car.modelRoot || car._nearLoading || !car.spec?.modelId ||
+        nearStates.get(car.spec.modelId) === "failed") return;
     car._nearLoading = true;
 
     getNearTemplate(car.spec.modelId).then((template) => {
