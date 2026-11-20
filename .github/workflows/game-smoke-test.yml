@@ -1,0 +1,84 @@
+name: Game smoke tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "gta67.html"
+      - "server.js"
+      - "src/**"
+      - "assets/cars/**"
+      - "package.json"
+      - ".github/workflows/game-smoke-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import pathlib, re
+
+          html = pathlib.Path("gta67.html").read_text(encoding="utf-8")
+          modules = re.findall(
+              r'<script\\b[^>]*type=["\\']module["\\'][^>]*>([\\s\\S]*?)</script>',
+              html,
+              flags=re.IGNORECASE
+          )
+          if len(modules) != 1:
+              raise SystemExit(f"Expected one module script in gta67.html, found {len(modules)}")
+          pathlib.Path("/tmp/gta67-game.mjs").write_text(modules[0], encoding="utf-8")
+          pathlib.Path("/tmp/vehicle-assets.mjs").write_text(
+              pathlib.Path("src/vehicle-assets.js").read_text(encoding="utf-8"),
+              encoding="utf-8"
+          )
+          PY
+          node --check /tmp/gta67-game.mjs
+          node --check /tmp/vehicle-assets.mjs
+          node --check server.js
+
+      - name: Install server dependency
+        run: npm install --no-audit --no-fund
+
+      - name: Smoke test game and GLTF asset routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          node server.js >/tmp/leonida-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/gta67.html -o /tmp/gta67.html; then
+              break
+            fi
+            sleep 1
+          done
+
+          test -s /tmp/gta67.html
+          curl -fsS http://127.0.0.1:3000/src/vehicle-assets.js -o /tmp/vehicle-assets.js
+          curl -fsS http://127.0.0.1:3000/assets/cars/manifest.json -o /tmp/vehicle-manifest.json
+          curl -fsS http://127.0.0.1:3000/assets/cars/mclaren-650s-gt3/scene.gltf -o /tmp/mclaren.gltf
+          curl -fsS http://127.0.0.1:3000/assets/cars/mclaren-650s-gt3/scene.bin -o /tmp/mclaren.bin
+          curl -fsS http://127.0.0.1:3000/assets/cars/mclaren-650s-gt3/textures/Carpaint.008_baseColor.png -o /tmp/mclaren-paint.png
+
+          test -s /tmp/vehicle-assets.js
+          test -s /tmp/vehicle-manifest.json
+          test -s /tmp/mclaren.gltf
+          test -s /tmp/mclaren.bin
+          test -s /tmp/mclaren-paint.png
+          echo "Game HTML, module, manifest, GLTF, binary buffer and texture routes are available."
