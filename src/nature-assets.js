@@ -19,14 +19,10 @@ export function loadNatureAssets(THREE, GLTFLoader, scene, roadXList, roadZList,
       const box = new THREE.Box3().setFromObject(o);
       const size = box.getSize(new THREE.Vector3());
       if (size.y < 0.01) return;
-      const center = box.getCenter(new THREE.Vector3());
       const clone = o.clone(true);
-      clone.position.sub(center);
-      clone.position.y += size.y/2;
-      // Use the world matrix because Sketchfab packs contain rotated parents.
+      // Preserve transforms of the Sketchfab parent hierarchy.
       const wrapper = new THREE.Group();
-      const matrix = o.matrixWorld.clone();
-      matrix.decompose(wrapper.position, wrapper.quaternion, wrapper.scale);
+      o.parent.matrixWorld.decompose(wrapper.position, wrapper.quaternion, wrapper.scale);
       wrapper.add(clone);
       const normalized = new THREE.Group();
       normalized.add(wrapper);
