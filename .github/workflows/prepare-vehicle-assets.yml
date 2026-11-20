@@ -1,0 +1,156 @@
+name: Prepare vehicle assets
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "*.zip"
+      - ".github/workflows/prepare-vehicle-assets.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prepare-vehicle-assets
+  cancel-in-progress: false
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract GLTF/GLB archives and generate manifest
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import json, pathlib, shutil, zipfile
+
+          root = pathlib.Path(".").resolve()
+          source_dir = root / "asset-sources" / "cars"
+          output_dir = root / "assets" / "cars"
+          source_dir.mkdir(parents=True, exist_ok=True)
+          output_dir.mkdir(parents=True, exist_ok=True)
+
+          vehicles = [
+              ("mclaren-650s-gt3", "McLaren 650S GT3", "2015_mclaren_650s_gt3.zip"),
+              ("bmw-m4-gt3-evo", "BMW M4 GT3 EVO G82", "2025_bmw_m4_gt3_evo_g82.zip"),
+              ("lamborghini-fenomeno", "Lamborghini Fenomeno", "2026_lamborghini_fenomeno.zip"),
+              ("bmw-m1-turbo", "BMW M1 Turbo", "bmw_m1_turbo.zip"),
+              ("volkswagen-golf-gti-2025", "Volkswagen Golf GTI 2025", "volkswagen_golf_gti_2025.zip"),
+          ]
+
+          manifest = {"version": 1, "vehicles": []}
+          total_bytes = 0
+
+          for slug, display_name, archive_name in vehicles:
+              archive = root / archive_name
+              archived_copy = source_dir / archive_name
+              if not archive.exists() and archived_copy.exists():
+                  archive = archived_copy
+              if not archive.exists():
+                  raise SystemExit(f"Missing expected archive: {archive_name}")
+
+              target = output_dir / slug
+              if target.exists():
+                  shutil.rmtree(target)
+              temp = root / ".vehicle_extract_tmp" / slug
+              if temp.exists():
+                  shutil.rmtree(temp)
+              temp.mkdir(parents=True, exist_ok=True)
+
+              with zipfile.ZipFile(archive) as zf:
+                  for info in zf.infolist():
+                      rel = pathlib.PurePosixPath(info.filename)
+                      if rel.is_absolute() or ".." in rel.parts:
+                          raise SystemExit(f"Unsafe path in {archive_name}: {info.filename}")
+                      if info.file_size > 95 * 1024 * 1024:
+                          raise SystemExit(f"Single file exceeds GitHub's safe file-size limit: {info.filename}")
+                      total_bytes += info.file_size
+                  zf.extractall(temp)
+
+              model_files = [
+                  p for p in temp.rglob("*")
+                  if p.is_file() and p.suffix.lower() in (".glb", ".gltf")
+              ]
+              if not model_files:
+                  raise SystemExit(f"No .gltf or .glb file found inside {archive_name}")
+
+              model_files.sort(key=lambda p: (p.suffix.lower() == ".glb", p.stat().st_size), reverse=True)
+              chosen = model_files[0]
+              shutil.copytree(temp, target)
+
+              rel_model = chosen.relative_to(temp).as_posix()
+              model_url = f"assets/cars/{slug}/{rel_model}"
+
+              metadata = {"nodes": [], "materials": [], "animations": [], "wheelNodes": []}
+              if chosen.suffix.lower() == ".gltf":
+                  doc = json.loads(chosen.read_text(encoding="utf-8"))
+                  metadata["nodes"] = [
+                      n.get("name", f"node_{i}")
+                      for i, n in enumerate(doc.get("nodes", []))
+                      if isinstance(n, dict)
+                  ]
+                  metadata["materials"] = [
+                      m.get("name", f"material_{i}")
+                      for i, m in enumerate(doc.get("materials", []))
+                      if isinstance(m, dict)
+                  ]
+                  metadata["animations"] = [
+                      a.get("name", f"animation_{i}")
+                      for i, a in enumerate(doc.get("animations", []))
+                      if isinstance(a, dict)
+                  ]
+                  metadata["wheelNodes"] = [
+                      n.get("name", f"node_{i}")
+                      for i, n in enumerate(doc.get("nodes", []))
+                      if isinstance(n, dict) and any(
+                          key in n.get("name", "").lower()
+                          for key in ("wheel", "tire", "tyre", "rim", "колес")
+                      )
+                  ]
+
+              manifest["vehicles"].append({
+                  "id": slug,
+                  "name": display_name,
+                  "model": model_url,
+                  "format": chosen.suffix.lower().lstrip("."),
+                  "modelBytes": chosen.stat().st_size,
+                  "metadata": metadata
+              })
+              print(f"{display_name}: {model_url} ({chosen.stat().st_size:,} bytes)")
+              shutil.rmtree(temp)
+
+              if archive.parent == root:
+                  archived_copy.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.move(str(archive), str(archived_copy))
+
+          (output_dir / "manifest.json").write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8"
+          )
+          (output_dir / "README.md").write_text(
+              "# Vehicle assets\n\n"
+              "Extracted source models live in one folder per vehicle. "
+              "The browser loads model paths from manifest.json. "
+              "Keep each GLTF .bin and texture file beside its original relative paths.\n",
+              encoding="utf-8"
+          )
+          print(f"Total uncompressed archive payload: {total_bytes / (1024 * 1024):.1f} MiB")
+          PY
+
+      - name: Commit prepared assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No asset changes to commit."
+            exit 0
+          fi
+          git commit -m "Organize imported vehicle assets"
+          git push
