@@ -1,0 +1,30 @@
+name: Unpack palm assets
+on:
+  push:
+    paths:
+      - 'palm_trees.zip'
+      - '.github/workflows/unpack-palms.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract palm glTF pack if uploaded
+        run: |
+          if [ ! -f palm_trees.zip ]; then echo "Waiting for palm_trees.zip"; exit 0; fi
+          mkdir -p assets/nature/palms
+          unzip -oq palm_trees.zip -d assets/nature/palms
+          test -f assets/nature/palms/scene.gltf
+          test -f assets/nature/palms/scene.bin
+      - name: Commit extracted palms
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/nature/palms 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Unpack realistic palm models"
+            git push
+          fi
