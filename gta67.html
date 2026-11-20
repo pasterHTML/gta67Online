@@ -3032,7 +3032,7 @@
         const dx = e.clientX - lastLookX, dy = e.clientY - lastLookY;
         lastLookX = e.clientX; lastLookY = e.clientY;
         camYaw -= dx * 0.0055;
-        camPitch = THREE.MathUtils.clamp(camPitch - dy * 0.0045, -0.75, 0.6);
+        camPitch = THREE.MathUtils.clamp(camPitch - dy * 0.0045, -1.35, 1.35);
       }
     });
     window.addEventListener("pointerup", (e) => {
@@ -3099,7 +3099,7 @@
     window.addEventListener("mousemove", (e) => {
       if (isTouchCapable || !inGameplay || isPausedGuiOpen || document.pointerLockElement !== renderer.domElement) return;
       const sens = aiming ? 0.0014 : 0.0022;
-      camYaw -= e.movementX * sens; camPitch = THREE.MathUtils.clamp(camPitch - e.movementY * sens, -0.75, 0.6);
+      camYaw -= e.movementX * sens; camPitch = THREE.MathUtils.clamp(camPitch - e.movementY * sens, -1.35, 1.35);
     });
 
     function performZoneAction(zone) {
@@ -3573,9 +3573,16 @@
         } else { promptEl.style.display = "none"; }
 
         const shoulderOffset = aiming ? 1.15 : 0.92, backDist = aiming ? 2.45 : 4.4, camHeight = aiming ? 1.56 : 1.78;
-        const lookTarget = player.root.position.clone().add(new THREE.Vector3(0, camHeight, 0)).addScaledVector(right, shoulderOffset * 0.65);
-        const desiredPos = player.root.position.clone().add(new THREE.Vector3(0, camHeight + Math.sin(-camPitch) * 1.35, 0)).addScaledVector(right, shoulderOffset).addScaledVector(forward, -backDist);
-        camera.position.lerp(desiredPos, 1 - Math.exp(-16 * dt)); camera.lookAt(lookTarget);
+        // Keep the third-person camera above the ground while allowing a full upward view.
+        // Pitch controls the actual viewing direction, not just the camera's vertical offset.
+        const desiredPos = player.root.position.clone()
+          .add(new THREE.Vector3(0, camHeight, 0))
+          .addScaledVector(right, shoulderOffset)
+          .addScaledVector(forward, -backDist);
+        camera.position.lerp(desiredPos, 1 - Math.exp(-16 * dt));
+        const viewDirection = forward.clone().multiplyScalar(Math.cos(camPitch));
+        viewDirection.y = Math.sin(camPitch);
+        camera.lookAt(camera.position.clone().addScaledVector(viewDirection, 10));
 
         sound.update(dt, targetSpeed, false, 0, currentInteriorIsClub);
         drawRadar(player.root.position, camYaw); drawBigCityMap(player.root.position, camYaw);
