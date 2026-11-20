@@ -93,11 +93,26 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
 
     const pending = (async () => {
       const entry = await getVehicleEntry(modelId);
-      const selectedPath = entry.farOptimizedModel || entry.optimizedModel || entry.model;
-      const modelUrl = new URL(selectedPath, projectRoot).href;
-      const gltf = await loader.loadAsync(modelUrl);
-      if (!gltf || !gltf.scene) throw new Error("GLB не содержит 3D-сцену: " + modelId);
-      return { entry, scene: gltf.scene };
+      const candidates = [...new Set([
+        entry.farOptimizedModel,
+        entry.optimizedModel,
+        entry.model
+      ].filter(Boolean))];
+      let lastError = null;
+
+      for (const relativePath of candidates) {
+        const modelUrl = new URL(relativePath, projectRoot).href;
+        try {
+          const gltf = await loader.loadAsync(modelUrl);
+          if (!gltf || !gltf.scene) throw new Error("GLB не содержит 3D-сцену");
+          return { entry, scene: gltf.scene, loadedPath: relativePath };
+        } catch (error) {
+          lastError = error;
+          console.warn("[LEONIDA] Не сработал вариант дальней модели, пробую следующий:", relativePath, error);
+        }
+      }
+
+      throw lastError || new Error("Нет доступных файлов дальней модели: " + modelId);
     })();
 
     farTemplates.set(modelId, pending);
@@ -121,11 +136,25 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
 
     const pending = (async () => {
       const entry = await getVehicleEntry(modelId);
-      const selectedPath = entry.optimizedModel || entry.model;
-      const modelUrl = new URL(selectedPath, projectRoot).href;
-      const gltf = await loader.loadAsync(modelUrl);
-      if (!gltf || !gltf.scene) throw new Error("GLB не содержит 3D-сцену: " + modelId);
-      return { entry, scene: gltf.scene };
+      const candidates = [...new Set([
+        entry.optimizedModel,
+        entry.model
+      ].filter(Boolean))];
+      let lastError = null;
+
+      for (const relativePath of candidates) {
+        const modelUrl = new URL(relativePath, projectRoot).href;
+        try {
+          const gltf = await loader.loadAsync(modelUrl);
+          if (!gltf || !gltf.scene) throw new Error("GLB не содержит 3D-сцену");
+          return { entry, scene: gltf.scene, loadedPath: relativePath };
+        } catch (error) {
+          lastError = error;
+          console.warn("[LEONIDA] Не сработал вариант детальной модели, пробую следующий:", relativePath, error);
+        }
+      }
+
+      throw lastError || new Error("Нет доступных файлов детальной модели: " + modelId);
     })();
 
     nearTemplates.set(modelId, pending);
@@ -163,8 +192,9 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
       throw new Error("Не удалось определить габариты модели " + modelId);
     }
 
-    // The game drives toward -Z; the source vehicle exports face +Z.
-    fitted.rotation.y += Math.PI;
+    // Most source vehicles face +Z, while the Golf export already faces -Z.
+    const isGolfAlreadyFacingForward = modelId.includes("volkswagen-golf-gti-2025");
+    if (!isGolfAlreadyFacingForward) fitted.rotation.y += Math.PI;
     fitted.updateMatrixWorld(true);
     bounds = new THREE.Box3().setFromObject(fitted);
     size = bounds.getSize(new THREE.Vector3());
@@ -191,7 +221,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
   }
 
   function findWheelPivots(root) {
-    const wheelName = /^(3dwheel\s+(front|rear)\s+[lr]|wheel1a_(lf|lr|rf|rr)(_|$)|wheel_(front|rear)\s+[lr](_|$)|wheel_(rf|lf|rr|lr)(_|$)|wheel_(fl|fr|rl|rr)(_|$)|wheels?_(front|rear)|wheel_(front|rear))/i;
+    const wheelName = /^(3dwheel\\s+(front|rear)\\s+[lr]|wheel1a_(lf|lr|rf|rr)(_|$)|wheel_(front|rear)\\s+[lr](_|$)|wheel_(rf|lf|rr|lr)(_|$)|wheel_(fl|fr|rl|rr)(_|$)|wheels?_(front|rear)|wheel_(front|rear)|wheels?_\\d+$)/i;
     const pivots = [];
     root.traverse((object) => {
       const hasChildren = Array.isArray(object.children) && object.children.length > 0;
@@ -233,9 +263,13 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
   async function mount(car) {
     if (!car || !car.spec || !car.spec.modelId || car.isTank) return false;
     if (car.farModelRoot || car.modelRoot) return true;
+    if (car._mounting) return false;
 
+    car._mounting = true;
     try {
       const template = await getFarTemplate(car.spec.modelId);
+      if (car.farModelRoot || car.modelRoot) return true;
+
       const farFitted = fitModel(template.scene, car.spec.modelId + "-far");
       const farPivots = findWheelPivots(farFitted);
 
@@ -255,22 +289,41 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
       console.warn("[LEONIDA] Не удалось загрузить дальнюю модель", car.spec.modelId, error);
       if (!car._modelWarningShown) {
         car._modelWarningShown = true;
-        notify("Не загрузилась модель " + car.spec.clsName + ". Используется резервная машина.", "rgba(239,68,68,.95)");
+        notify("Не загрузилась модель " + car.spec.clsName + ". Будет повторная попытка загрузки.", "rgba(239,68,68,.95)");
       }
       return false;
+    } finally {
+      car._mounting = false;
+      car._mountAttempts = (car._mountAttempts || 0) + 1;
+      const retryDelay = Math.min(60000, 5000 * (2 ** Math.max(0, car._mountAttempts - 1)));
+      car._mountRetryAt = performance.now() + retryDelay;
     }
   }
 
   function update(cars, referencePosition = null, activeCar = null) {
     if (!Array.isArray(cars)) return;
-    const nearDistanceSq = NEAR_LOD_DISTANCE * NEAR_LOD_DISTANCE;
+    const enterNearSq = (NEAR_LOD_DISTANCE - 10) ** 2;
+    const exitNearSq = (NEAR_LOD_DISTANCE + 14) ** 2;
+    const now = performance.now();
 
     for (const car of cars) {
-      if (!car || !car.farModelRoot) continue;
+      if (!car || !car.spec || car.isTank) continue;
       const distanceSq = referencePosition
         ? car.group.position.distanceToSquared(referencePosition)
         : 0;
-      const needsNear = car === activeCar || !referencePosition || distanceSq <= nearDistanceSq;
+
+      if (!car.farModelRoot) {
+        const shouldRetry = car === activeCar || !referencePosition || distanceSq <= 145 * 145;
+        if (shouldRetry && !car._mounting && now >= (car._mountRetryAt || 0)) {
+          void mount(car);
+        }
+        continue;
+      }
+
+      const wasNear = !!car._usingNearModel;
+      const needsNear = car === activeCar || !referencePosition ||
+        (wasNear ? distanceSq <= exitNearSq : distanceSq <= enterNearSq);
+      car._usingNearModel = needsNear;
 
       if (needsNear && !car.modelRoot) loadNear(car);
 
