@@ -10,7 +10,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
   const NEAR_LOD_DISTANCE = 36;
   let manifestPromise = null;
   let manifestCache = null;
-  let expectedModels = 6; // five far models + first nearby high-detail model
+  let expectedModels = 5; // Nearby far LODs plus the first nearby detailed model
   let loadedFiles = 0;
   let totalFiles = 0;
   let lastProgress = null;
@@ -71,7 +71,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
         const manifest = await response.json();
         if (!manifest || !Array.isArray(manifest.vehicles)) throw new Error("Файл manifest.json имеет неверный формат");
         manifestCache = manifest;
-        expectedModels = manifest.vehicles.length + 1;
+        expectedModels = Math.min(manifest.vehicles.length, 4) + 1;
         publishProgress({ detail: "Найдено моделей: " + manifest.vehicles.length });
         return manifest;
       });
