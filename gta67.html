@@ -1065,7 +1065,7 @@
     const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 1600);
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
     document.body.appendChild(renderer.domElement);
@@ -2943,7 +2943,7 @@
       const right = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
       let currentSpeedKmh = 0;
       const playerRefPos = (inCar && activeCar) ? activeCar.group.position : player.root.position;
-      vehicleAssets.update(allCars);
+      vehicleAssets.update(allCars, playerRefPos, activeCar);
 
       if (currentInteriorName) { floorText.textContent = currentInteriorName; missionMarker.visible = false; }
       else if (playerRefPos.x > 170) { floorText.textContent = "Пляж Ocean Beach"; missionMarker.visible = true; }
