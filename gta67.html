@@ -2022,6 +2022,15 @@
       { modelId: "volkswagen-golf-gti-2025", clsName: "Volkswagen Golf GTI 2025", maxSpeed: 34, accel: 27, color: 0x7c3aed, scaleX: 1, scaleY: 1, scaleZ: 1 }
     ];
 
+    const driverLooks = [
+      { shirtColor: "#0f766e", stripeColor: "#ccfbf1", pantsColor: "#1e293b", skinHex: "#b97a55", hairColor: 0x191919, beard: true },
+      { shirtColor: "#b45309", stripeColor: "#fef3c7", pantsColor: "#334155", skinHex: "#edc49f", hairColor: 0x6b3f22, beard: false },
+      { shirtColor: "#2563eb", stripeColor: "#dbeafe", pantsColor: "#292524", skinHex: "#8d5b43", hairColor: 0x171717, beard: false },
+      { shirtColor: "#9333ea", stripeColor: "#f3e8ff", pantsColor: "#172554", skinHex: "#f1c29b", hairColor: 0x442216, beard: true },
+      { shirtColor: "#be123c", stripeColor: "#ffe4e6", pantsColor: "#374151", skinHex: "#c48a68", hairColor: 0x251913, beard: false },
+      { shirtColor: "#15803d", stripeColor: "#dcfce7", pantsColor: "#292524", skinHex: "#d6a47c", hairColor: 0x75502d, beard: true }
+    ];
+
     function pickCarClassByRarity(seed = null) {
       if (seed === 2 || seed === 7) return carClasses[2];
       const r = seed === null
@@ -2154,7 +2163,12 @@
 
       let npcDriver = null;
       if (hasNpcDriver) {
-        npcDriver = createCharacter({ shirtColor: (isPolice || isTank) ? "#1d4ed8" : "#0284c7", stripeColor: "#f8fafc", pantsColor: "#0f172a", hairColor: 0x3b2f2f, beard: false });
+        const driverLook = driverLooks[(nextCarId - 1) % driverLooks.length];
+        npcDriver = createCharacter({
+          ...driverLook,
+          shirtColor: isPolice || isTank ? "#1d4ed8" : driverLook.shirtColor,
+          stripeColor: "#f8fafc"
+        });
         npcDriver.root.scale.setScalar(0.9);
         npcDriver.updateAnim(0.016, 0, true, false, true);
         driverSeatSlot.add(npcDriver.root);
@@ -2978,6 +2992,7 @@
           const npc = activeCar.npcDriver;
           activeCar.npcDriver = null;
           activeCar.driverSeatSlot.remove(npc.root);
+          npc.root.scale.set(1, 1, 1);
           scene.add(npc.root);
           const rightVec = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), activeCar.yaw);
           npc.root.position.copy(activeCar.group.position).addScaledVector(rightVec, 2.3);
