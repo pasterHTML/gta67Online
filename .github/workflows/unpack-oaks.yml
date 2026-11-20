@@ -1,0 +1,29 @@
+name: Unpack oak tree assets
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'leonida_oaks_11_variants.zip'
+      - '.github/workflows/unpack-oaks.yml'
+permissions:
+  contents: write
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract provided oak pack
+        run: |
+          mkdir -p assets/nature/oaks
+          unzip -oq leonida_oaks_11_variants.zip -d assets/nature/oaks
+          test -f assets/nature/oaks/scene.gltf
+          test -f assets/nature/oaks/scene.bin
+      - name: Commit unpacked game-ready assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/nature/oaks
+          if ! git diff --cached --quiet; then
+            git commit -m "Unpack oak tree models for streaming"
+            git push
+          fi
