@@ -90,7 +90,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}) 
   }
 
   function findWheelPivots(root) {
-    const exactWheelName = /^(3dwheel\s+(front|rear)\s+[lr]|wheel1a_(lf|lr|rf|rr)|wheel_(front|rear)\s+[lr]|wheel_(rf|lf|rr|lr)|tire_(fl|fr|rl|rr)(_|$))/i;
+    const exactWheelName = /^(3dwheel\s+(front|rear)\s+[lr]|wheel1a_(lf|lr|rf|rr)(_|$)|wheel_(front|rear)\s+[lr](_|$)|wheel_(rf|lf|rr|lr)(_|$)|tire_(fl|fr|rl|rr)(_|$))/i;
     const candidates = [];
     root.traverse((object) => {
       if (!object.name || !object.children || object.children.length === 0) return;
@@ -140,7 +140,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}) 
 
   function update(cars, referencePosition, activeCar = null) {
     if (!referencePosition || !Array.isArray(cars)) return;
-    const highDetailDistanceSq = 92 * 92;
+    const highDetailDistanceSq = 72 * 72;
 
     for (const car of cars) {
       if (!car || !car.modelRoot) continue;
