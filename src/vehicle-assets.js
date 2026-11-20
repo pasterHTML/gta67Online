@@ -7,6 +7,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
   const nearTemplates = new Map();
   const farStates = new Map();
   const nearStates = new Map();
+  const NEAR_LOD_DISTANCE = 58;
   let manifestPromise = null;
   let manifestCache = null;
   let expectedModels = 6; // five far models + first nearby high-detail model
@@ -262,7 +263,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
 
   function update(cars, referencePosition = null, activeCar = null) {
     if (!Array.isArray(cars)) return;
-    const nearDistanceSq = 58 * 58;
+    const nearDistanceSq = NEAR_LOD_DISTANCE * NEAR_LOD_DISTANCE;
 
     for (const car of cars) {
       if (!car || !car.farModelRoot) continue;
