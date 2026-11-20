@@ -811,6 +811,7 @@
     import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
     import { createVehicleAssetManager } from "./src/vehicle-assets.js";
+    import { loadNatureAssets } from "./src/nature-assets.js";
 
     const isTouchCapable = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
     if (isTouchCapable) document.body.classList.add("touch-device");
@@ -1761,6 +1762,7 @@
     const palmTrunkMatrices = [], palmFrondMatrices = [];
     const shadeTrunkMatrices = [], shadeCrown1Matrices = [], shadeCrown2Matrices = [];
     const treeDummy = new THREE.Object3D();
+    const oldShadeTreeMeshes = [];
 
     function storeTreeMatrix(list, x, y, z, rotation, scale) {
       treeDummy.position.set(x, y, z);
@@ -1779,6 +1781,7 @@
       mesh.castShadow = castShadow;
       mesh.receiveShadow = false;
       scene.add(mesh);
+      if (matrices === shadeTrunkMatrices || matrices === shadeCrown1Matrices || matrices === shadeCrown2Matrices) oldShadeTreeMeshes.push(mesh);
     }
 
     function addImprovedPalm(x, z) {
@@ -1827,6 +1830,8 @@
     addTreeInstances(new THREE.CylinderGeometry(0.22, 0.35, 3.4, 8), trunkMat, shadeTrunkMatrices, true);
     addTreeInstances(new THREE.IcosahedronGeometry(1.85, 1), treeFoliageMat1, shadeCrown1Matrices, false);
     addTreeInstances(new THREE.IcosahedronGeometry(1.42, 1), treeFoliageMat2, shadeCrown2Matrices, false);
+
+    loadNatureAssets(THREE, GLTFLoader, scene, roadXList, roadZList, oldShadeTreeMeshes);
 
     // --- ИНТЕРЬЕРЫ ПОД КАРТОЙ (interiorY = -75) ---
     const interiorY = -75;
