@@ -534,6 +534,72 @@
       .lobby-header h1 { font-size: 24px; }
     }
 
+
+    /* Consistent graphite / warm-metal UI theme across the game HUD and dialogs */
+    .panel {
+      background: rgba(7,12,18,.9);
+      border: 1px solid rgba(230,182,111,.18);
+      border-radius: 4px;
+      box-shadow: 0 10px 28px rgba(0,0,0,.32);
+      backdrop-filter: blur(10px);
+    }
+    .stars { color: #e6b66f; }
+    #radar { border-color: rgba(230,182,111,.38); }
+    #speedo .num { color: #e6b66f; text-shadow: 0 0 18px rgba(230,182,111,.18); }
+    #missionBox {
+      background: rgba(7,12,18,.84);
+      border: 1px solid rgba(230,182,111,.25);
+      border-left: 3px solid #e6b66f;
+      border-radius: 3px;
+      padding: 9px 14px;
+      box-shadow: 0 8px 22px rgba(0,0,0,.28);
+    }
+    #missionBox .m-title { color: #e6b66f; letter-spacing: 1px; }
+    #missionBox .m-sub { color: rgba(226,232,240,.8); }
+    #prompt {
+      border-color: rgba(230,182,111,.68);
+      border-radius: 3px;
+      background: rgba(7,12,18,.96);
+      color: #f0cc91;
+      letter-spacing: .3px;
+    }
+    #toast {
+      border: 1px solid rgba(230,182,111,.36);
+      border-radius: 4px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.32);
+    }
+    .modal-backdrop { background: rgba(2,6,12,.76); backdrop-filter: blur(8px); }
+    .modal-card {
+      background: rgba(8,13,21,.98);
+      border: 1px solid rgba(230,182,111,.22);
+      border-radius: 4px;
+      box-shadow: 0 24px 70px rgba(0,0,0,.62);
+    }
+    .modal-head {
+      border-bottom: 1px solid rgba(230,182,111,.17);
+      padding-bottom: 12px;
+    }
+    .close-btn {
+      border-radius: 3px;
+      background: rgba(230,182,111,.12);
+      color: #f4d6a8;
+      border: 1px solid rgba(230,182,111,.24);
+    }
+    .server-item, .wardrobe-item {
+      border-radius: 3px;
+      border-color: rgba(226,232,240,.14);
+      background: rgba(15,23,42,.62);
+    }
+    button { transition: filter .18s ease, transform .18s ease, background .18s ease; }
+    button:hover { filter: brightness(1.08); }
+    .t-btn {
+      border-radius: 4px;
+      border-color: rgba(230,182,111,.24);
+      background: rgba(7,12,18,.86);
+    }
+    .t-btn.fire { background: rgba(125,45,32,.9); }
+    #crosshair .dot { background: #e6b66f; box-shadow: 0 0 7px rgba(230,182,111,.85); }
+
 </style>
 </head>
 <body>
