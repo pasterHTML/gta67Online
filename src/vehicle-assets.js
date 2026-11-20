@@ -221,7 +221,7 @@ export function createVehicleAssetManager(THREE, GLTFLoader, notify = () => {}, 
   }
 
   function findWheelPivots(root) {
-    const wheelName = /^(3dwheel\\s+(front|rear)\\s+[lr]|wheel1a_(lf|lr|rf|rr)(_|$)|wheel_(front|rear)\\s+[lr](_|$)|wheel_(rf|lf|rr|lr)(_|$)|wheel_(fl|fr|rl|rr)(_|$)|wheels?_(front|rear)|wheel_(front|rear)|wheels?_\\d+$)/i;
+    const wheelName = /^(3dwheel\s+(front|rear)\s+[lr]|wheel1a_(lf|lr|rf|rr)(_|$)|wheel_(front|rear)\s+[lr](_|$)|wheel_(rf|lf|rr|lr)(_|$)|wheel_(fl|fr|rl|rr)(_|$)|wheels?_(front|rear)|wheel_(front|rear)|wheels?_\d+$)/i;
     const pivots = [];
     root.traverse((object) => {
       const hasChildren = Array.isArray(object.children) && object.children.length > 0;
