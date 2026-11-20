@@ -1,0 +1,128 @@
+name: Prepare city textures
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "Grass001_1K-JPG.zip"
+      - "Road015A_1K-JPG.zip"
+      - "Concrete049_1K-JPG.zip"
+      - "Plaster001_1K-JPG.zip"
+      - "Bark001_1K-JPG.zip"
+      - "Leaf001_1K-JPG.zip"
+      - "Ground061_1K-JPG.zip"
+      - ".github/workflows/prepare-city-textures.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prepare-city-textures
+  cancel-in-progress: false
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract PBR texture packs
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import json, pathlib, shutil, zipfile
+
+          root = pathlib.Path(".").resolve()
+          source_dir = root / "asset-sources" / "city"
+          output_dir = root / "assets" / "city" / "textures"
+          source_dir.mkdir(parents=True, exist_ok=True)
+          output_dir.mkdir(parents=True, exist_ok=True)
+
+          textures = [
+              ("grass", "Grass 001", "Grass001_1K-JPG.zip", "https://ambientcg.com/view?id=Grass001"),
+              ("asphalt", "Road 015 A", "Road015A_1K-JPG.zip", "https://ambientcg.com/view?id=Road015A"),
+              ("concrete", "Concrete 049", "Concrete049_1K-JPG.zip", "https://ambientcg.com/view?id=Concrete049"),
+              ("building-plaster", "Plaster 001", "Plaster001_1K-JPG.zip", "https://ambientcg.com/view?id=Plaster001"),
+              ("tree-bark", "Bark 001", "Bark001_1K-JPG.zip", "https://ambientcg.com/view?id=Bark001"),
+              ("tree-leaves", "Leaf 001", "Leaf001_1K-JPG.zip", "https://ambientcg.com/view?id=Leaf001"),
+              ("beach-sand", "Ground 061", "Ground061_1K-JPG.zip", "https://ambientcg.com/view?id=Ground061")
+          ]
+
+          manifest = {"version": 1, "license": "CC0 1.0", "textures": []}
+          found = 0
+
+          for slug, display_name, archive_name, source_url in textures:
+              archive = root / archive_name
+              archived_copy = source_dir / archive_name
+              if not archive.exists() and archived_copy.exists():
+                  archive = archived_copy
+              if not archive.exists():
+                  continue
+
+              found += 1
+              target = output_dir / slug
+              if target.exists():
+                  shutil.rmtree(target)
+              temp = root / ".city_texture_extract_tmp" / slug
+              if temp.exists():
+                  shutil.rmtree(temp)
+              temp.mkdir(parents=True, exist_ok=True)
+
+              with zipfile.ZipFile(archive) as zf:
+                  for info in zf.infolist():
+                      rel = pathlib.PurePosixPath(info.filename)
+                      if rel.is_absolute() or ".." in rel.parts:
+                          raise SystemExit(f"Unsafe path in {archive_name}: {info.filename}")
+                      if info.file_size > 95 * 1024 * 1024:
+                          raise SystemExit(f"Single file too large: {info.filename}")
+                  zf.extractall(temp)
+
+              shutil.copytree(temp, target)
+              map_files = sorted(
+                  p.relative_to(target).as_posix()
+                  for p in target.rglob("*")
+                  if p.is_file()
+              )
+              manifest["textures"].append({
+                  "id": slug,
+                  "name": display_name,
+                  "source": source_url,
+                  "license": "CC0 1.0",
+                  "folder": f"assets/city/textures/{slug}/",
+                  "files": map_files
+              })
+              shutil.rmtree(temp)
+
+              if archive.parent == root:
+                  shutil.move(str(archive), str(archived_copy))
+
+              print(f"{display_name}: extracted {len(map_files)} files")
+
+          if found == 0:
+              print("No city texture ZIPs found yet. Upload the seven named ZIP files to the repository root when ready.")
+              raise SystemExit(0)
+
+          (output_dir / "manifest.json").write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8"
+          )
+          print(f"Prepared {found} city texture packs.")
+          PY
+
+      - name: Commit extracted textures
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A assets/city asset-sources/city
+          if git diff --cached --quiet; then
+            echo "No city texture files to commit."
+            exit 0
+          fi
+          git commit -m "Add prepared city PBR texture packs"
+          git fetch origin main
+          git rebase origin/main
+          git push
